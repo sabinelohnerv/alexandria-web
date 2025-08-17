@@ -86,3 +86,19 @@ export function IconInfo(props: React.SVGProps<SVGSVGElement>) {
         </svg>
     );
 }
+export function IconEye(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" {...props}>
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" strokeWidth="2" />
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+        </svg>
+    );
+}
+export function IconEyeOff(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" {...props}>
+            <path d="M3 3l18 18M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42M9.9 4.24A10.94 10.94 0 0112 4c7 0 11 8 11 8a18.35 18.35 0 01-4.27 5.11M6.61 6.61A18.26 18.26 0 001 12s4 8 11 8a10.94 10.94 0 004.1-.78" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+    );
+}
+
