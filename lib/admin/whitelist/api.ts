@@ -1,4 +1,6 @@
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type { Role, WhitelistEntry } from "./types";
 
 type ListOpts = {
@@ -19,6 +21,42 @@ export type CreateWhitelistInput = {
     email: string;
     role: Role;
 };
+
+function extractMessage(payload: any, fallback = "Error") {
+    if (!payload) return fallback;
+    if (typeof payload === "string") return payload;
+
+    // DRF suele usar { detail: "..." }
+    if (typeof payload.detail === "string") return payload.detail;
+
+    // Errores por campo: { field: ["msg1", "msg2"] }
+    for (const k of Object.keys(payload)) {
+        const v = (payload as any)[k];
+        if (typeof v === "string") return v;
+        if (Array.isArray(v) && typeof v[0] === "string") return v[0];
+    }
+
+    try {
+        return JSON.stringify(payload);
+    } catch {
+        return fallback;
+    }
+}
+
+async function resJsonOrThrow<T>(res: Response): Promise<T> {
+    if (res.ok) return res.json() as Promise<T>;
+
+    let text = "";
+    try {
+        text = await res.text();
+        const json = text ? JSON.parse(text) : undefined;
+        throw new Error(extractMessage(json, text || `HTTP ${res.status}`));
+    } catch (e) {
+        if (text && !(e instanceof Error)) throw new Error(text);
+        throw e;
+    }
+}
+
 
 export async function listWhitelist(opts?: ListOpts) {
     const sp = new URLSearchParams();
@@ -42,7 +80,7 @@ export async function listWhitelist(opts?: ListOpts) {
         const text = await res.text().catch(() => res.statusText);
         throw new Error(text || `HTTP ${res.status}`);
     }
-    return res.json(); // WhitelistEntry[]
+    return resJsonOrThrow<WhitelistEntry[]>(res);
 }
 
 export async function createWhitelist(dto: CreateWhitelistInput): Promise<WhitelistEntry> {
@@ -56,13 +94,13 @@ export async function createWhitelist(dto: CreateWhitelistInput): Promise<Whitel
         const text = await res.text().catch(() => res.statusText);
         throw new Error(text || `HTTP ${res.status}`);
     }
-    return res.json();
+    return resJsonOrThrow<WhitelistEntry>(res);
 }
 
 export async function getWhitelist(id: number): Promise<WhitelistEntry> {
     const res = await fetch(`/api/admin/whitelist/${id}`, { credentials: "include" });
     if (!res.ok) throw new Error(await res.text());
-    return (await res.json()) as WhitelistEntry;
+    return resJsonOrThrow<WhitelistEntry>(res);
 }
 
 export async function updateWhitelist(id: number, data: Partial<{
@@ -75,7 +113,7 @@ export async function updateWhitelist(id: number, data: Partial<{
         body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(await res.text());
-    return (await res.json()) as WhitelistEntry;
+    return resJsonOrThrow<WhitelistEntry>(res);
 }
 
 export async function deactivateWhitelist(id: number) {
@@ -84,7 +122,7 @@ export async function deactivateWhitelist(id: number) {
         credentials: "include",
     });
     if (!res.ok) throw new Error(await res.text());
-    return await res.json();
+    return resJsonOrThrow<{ detail: string }>(res);
 }
 
 export async function reactivateWhitelist(id: number) {
@@ -93,5 +131,5 @@ export async function reactivateWhitelist(id: number) {
         credentials: "include",
     });
     if (!res.ok) throw new Error(await res.text());
-    return await res.json();
+    return resJsonOrThrow<{ detail: string }>(res);
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client"
 
 import { useEffect, useRef } from "react"
@@ -20,7 +21,10 @@ export default function Topbar({ user }: Props) {
         function onEsc(e: KeyboardEvent) { if (e.key === "Escape") setUserMenuOpen(false) }
         document.addEventListener("mousedown", onDocClick)
         document.addEventListener("keydown", onEsc)
-        return () => { document.removeEventListener("mousedown", onDocClick); document.removeEventListener("keydown", onEsc) }
+        return () => {
+            document.removeEventListener("mousedown", onDocClick)
+            document.removeEventListener("keydown", onEsc)
+        }
     }, [userMenuOpen, setUserMenuOpen])
 
     async function logout() {
@@ -51,19 +55,12 @@ export default function Topbar({ user }: Props) {
 
             {/* Brand */}
             <a href={HOME_PATH} className="flex items-center gap-2 px-2 md:px-3">
-                <span
-                    aria-hidden
-                    className="grid place-items-center rounded-xl ring-4 ring-white size-8"
-                    style={{ background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)" }}
-                    title="Alexandria"
-                >
-                    <svg width="18" height="18" viewBox="0 0 24 24" className="text-white">
-                        <path fill="currentColor" d="M12 3l9 18h-3l-2.4-4.8H8.4L6 21H3L12 3zm0 5.6L9.3 13h5.4L12 8.6z" />
-                    </svg>
-                </span>
-                <span className="select-text text-sm md:text-base font-semibold tracking-tight" style={{ color: "var(--brand)" }}>
-                    Alexandria
-                </span>
+                <img
+                    src="/brand/logo-full.svg"
+                    alt="Alexandria"
+                    width={170}
+                    decoding="async"
+                />
             </a>
 
             <div className="ms-auto flex items-center gap-3 px-2 md:px-4 relative" ref={menuRef}>
@@ -86,11 +83,21 @@ export default function Topbar({ user }: Props) {
                     aria-expanded={userMenuOpen}
                     aria-haspopup="menu"
                 >
-                    <span className="grid place-items-center size-6 rounded-md text-white text-[11px] font-semibold" style={{ background: "var(--brand)" }} aria-hidden>
+                    <span
+                        className="grid place-items-center size-6 rounded-md text-white text-[11px] font-semibold"
+                        style={{ background: "var(--brand)" }}
+                        aria-hidden
+                    >
                         {initials}
                     </span>
                     <span className="select-text">{displayName}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" className={`text-slate-500 transition-transform ${userMenuOpen ? "rotate-180" : ""}`} aria-hidden>
+                    <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        className={`text-slate-500 transition-transform ${userMenuOpen ? "rotate-180" : ""}`}
+                        aria-hidden
+                    >
                         <path fill="currentColor" d="M7 10l5 5 5-5z" />
                     </svg>
                 </button>

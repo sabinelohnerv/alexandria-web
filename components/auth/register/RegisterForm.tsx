@@ -13,8 +13,6 @@ import { IconEye, IconEyeOff } from "@/components/ui/Icons";
 
 const Schema = z
     .object({
-        first_name: z.string().min(2, "Mínimo 2 caracteres"),
-        last_name: z.string().min(2, "Mínimo 2 caracteres"),
         email: z.string().email("Email inválido"),
         password: z.string().min(8, "Mínimo 8 caracteres"),
         confirm_password: z.string(),
@@ -54,41 +52,13 @@ export default function RegisterForm() {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <label className="mb-1 block text-sm font-medium">Nombre</label>
-                    <input
-                        className="w-full rounded-xl border bg-white p-3 text-sm shadow-sm outline-none
-                       focus-visible:ring-2 focus-visible:ring-[--brand] focus-visible:ring-offset-2"
-                        {...register("first_name")}
-                    />
-                    {errors.first_name && (
-                        <p className="mt-1 text-xs text-red-600">
-                            {errors.first_name.message}
-                        </p>
-                    )}
-                </div>
-                <div>
-                    <label className="mb-1 block text-sm font-medium">Apellido</label>
-                    <input
-                        className="w-full rounded-xl border bg-white p-3 text-sm shadow-sm outline-none
-                       focus-visible:ring-2 focus-visible:ring-[--brand] focus-visible:ring-offset-2"
-                        {...register("last_name")}
-                    />
-                    {errors.last_name && (
-                        <p className="mt-1 text-xs text-red-600">
-                            {errors.last_name.message}
-                        </p>
-                    )}
-                </div>
-            </div>
-
             <div>
                 <label className="mb-1 block text-sm font-medium">Email</label>
                 <input
                     className="w-full rounded-xl border bg-white p-3 text-sm shadow-sm outline-none
                      focus-visible:ring-2 focus-visible:ring-[--brand] focus-visible:ring-offset-2"
                     autoComplete="email"
+                    placeholder="tucorreo@dominio.com"
                     {...register("email")}
                 />
                 {errors.email && (
@@ -104,6 +74,7 @@ export default function RegisterForm() {
                         className="w-full rounded-xl border bg-white p-3 pe-11 text-sm shadow-sm outline-none
                        focus-visible:ring-2 focus-visible:ring-[--brand] focus-visible:ring-offset-2"
                         autoComplete="new-password"
+                        placeholder="••••••••"
                         {...register("password")}
                     />
                     <button
@@ -135,6 +106,7 @@ export default function RegisterForm() {
                         className="w-full rounded-xl border bg-white p-3 pe-11 text-sm shadow-sm outline-none
                        focus-visible:ring-2 focus-visible:ring-[--brand] focus-visible:ring-offset-2"
                         autoComplete="new-password"
+                        placeholder="••••••••"
                         {...register("confirm_password")}
                     />
                     <button

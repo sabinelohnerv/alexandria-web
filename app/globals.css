@@ -9,7 +9,7 @@
   --secondary: #7b7c7e;
   /* Secundario */
 
-   --brand-50:  #e8f1f7;  
+  --brand-50: #e8f1f7;
   --brand-100: #dbe9f3;
 }
 
@@ -53,4 +53,14 @@ body {
 
 * {
   border-color: var(--border);
+}
+
+.brand-header-gradient {
+  background: linear-gradient(135deg,
+      var(--brand) 0%,
+      color-mix(in srgb, var(--brand) 70%, #ffffff) 100%);
+}
+
+.brand-badge {
+  background: var(--brand-50);
 }

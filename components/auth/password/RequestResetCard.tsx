@@ -13,6 +13,9 @@ export default function RequestResetCard() {
                     Ingresa tu email y te enviaremos un código de verificación.
                 </p>
                 <RequestResetForm />
+                <div className="mt-4 text-center text-xs">
+                    <a className="hover:underline" href="/login">Volver atrás</a>
+                </div>
             </div>
         </div>
     );

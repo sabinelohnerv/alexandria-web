@@ -1,8 +1,6 @@
 export type Role = "admin" | "user";
 
 export type RequestOtpRequest = {
-    first_name: string;
-    last_name: string;
     email: string;
     password: string;
 };

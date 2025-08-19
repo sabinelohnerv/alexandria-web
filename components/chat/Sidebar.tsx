@@ -29,7 +29,7 @@ function SidebarInner() {
                     className="rounded-lg px-3 py-1 text-sm font-medium text-white"
                     style={{ background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)" }}
                 >
-                    Nuevo
+                    Nuevo chat
                 </button>
             </div>
 
