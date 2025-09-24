@@ -5,22 +5,36 @@ const API_BASE_PUBLIC =
 const API_BASE_SERVER =
     process.env.API_BASE_URL || "http://127.0.0.1:8000/api";
 
-function isServer() {
-    return typeof window === "undefined";
+function isServer() { return typeof window === "undefined"; }
+
+// añade "/" final solo en mutaciones y antes del query
+function normalizePath(path: string, method?: string) {
+    const m = (method ?? "GET").toUpperCase();
+    const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(m);
+
+    const qPos = path.indexOf("?");
+    const base = qPos >= 0 ? path.slice(0, qPos) : path;
+    const query = qPos >= 0 ? path.slice(qPos) : "";
+
+    let cleanBase = base.replace(/^\/+/, "");
+    if (isMutation && !cleanBase.endsWith("/") && !cleanBase.split("/").pop()?.includes(".")) {
+        cleanBase += "/";
+    }
+    return `${cleanBase}${query}`;
 }
 
-function buildUrl(path: string) {
-    const clean = path.replace(/^\/+/, "");
-    if (USE_PROXY && !isServer()) return `/_backend/${clean}`;
+function buildUrl(path: string, method?: string) {
+    const safePath = normalizePath(path, method);
+    if (USE_PROXY && !isServer()) return `/api/backend/${safePath}`;
     const base = isServer() ? API_BASE_SERVER : API_BASE_PUBLIC;
-    return `${base}/${clean}`;
+    return `${base}/${safePath}`;
 }
 
 export async function fetchJson<T>(
     path: string,
     init?: RequestInit & { parseAs?: "json" | "text" }
 ): Promise<T> {
-    const res = await fetch(buildUrl(path), {
+    const res = await fetch(buildUrl(path, init?.method), {
         ...init,
         headers: {
             "Content-Type": "application/json",

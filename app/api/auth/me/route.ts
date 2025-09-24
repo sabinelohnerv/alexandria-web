@@ -10,7 +10,6 @@ export async function GET(req: NextRequest) {
     let access = req.cookies.get(ACCESS_COOKIE)?.value || null;
     const refresh = req.cookies.get(REFRESH_COOKIE)?.value || null;
 
-    // Si no hay access pero sí refresh, renueva
     let setNewAccess: string | null = null;
     if (!access && refresh) {
         try {
@@ -36,7 +35,6 @@ export async function GET(req: NextRequest) {
 
         const res = NextResponse.json({ user });
 
-        // Si se generó un access nuevo, actualízalo en cookie
         if (setNewAccess) {
             res.cookies.set(ACCESS_COOKIE, setNewAccess, { ...cookieOpts });
         }

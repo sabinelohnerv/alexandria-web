@@ -16,6 +16,7 @@ const PUBLIC_PATHS = [
 const PROTECTED_PATHS = [
     /^\/$/,
     /^\/admin(\/|$)/,
+    /^\/search(\/|$)/,
 ];
 
 export function middleware(req: NextRequest) {
@@ -43,5 +44,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/:path*"],
+  matcher: ["/((?!_next|favicon.ico|assets|api/_backend).*)"],
 };

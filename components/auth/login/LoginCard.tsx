@@ -1,4 +1,3 @@
-// components/auth/login/LoginCard.tsx
 "use client";
 
 import { useState } from "react";
