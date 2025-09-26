@@ -3,6 +3,7 @@
 import * as React from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import PromptDialog from "@/components/ui/PromptDialog";
+import KebabMenu from "@/components/ui/KebabMenu";
 
 export type SessionPreview = {
     id: number;
@@ -37,7 +38,7 @@ function SessionTileBase({ session, active, onSelect, onRename, onDelete }: Prop
         }
     };
 
-    // Estado de popups
+    // popups
     const [renameOpen, setRenameOpen] = React.useState(false);
     const [deleteOpen, setDeleteOpen] = React.useState(false);
     const [busy, setBusy] = React.useState(false);
@@ -84,30 +85,25 @@ function SessionTileBase({ session, active, onSelect, onRename, onDelete }: Prop
                     <div className="text-[11px] text-slate-500">{fmtDate(session.updatedAt)}</div>
                 </div>
 
-                {/* Acciones (solo hover/focus) */}
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setRenameOpen(true);
-                        }}
-                        className="text-xs underline rounded px-1 hover:bg-white"
-                        aria-label="Renombrar"
-                    >
-                        Renombrar
-                    </button>
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteOpen(true);
-                        }}
-                        className="text-xs text-red-600 underline rounded px-1 hover:bg-white"
-                        aria-label="Eliminar"
-                    >
-                        Eliminar
-                    </button>
+                {/* Botón de menú (tres puntitos) */}
+                <div
+                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()} // no seleccionar tile al abrir menú
+                >
+                    <KebabMenu
+                        title="Opciones"
+                        items={[
+                            {
+                                label: "Renombrar",
+                                onClick: () => setRenameOpen(true),
+                            },
+                            {
+                                label: "Eliminar",
+                                danger: true,
+                                onClick: () => setDeleteOpen(true),
+                            },
+                        ]}
+                    />
                 </div>
             </div>
 
@@ -120,7 +116,7 @@ function SessionTileBase({ session, active, onSelect, onRename, onDelete }: Prop
                 initialValue={session.title}
                 onCancel={() => !busy && setRenameOpen(false)}
                 onSubmit={submitRename}
-                validate={(v) => (v.length < 2 ? "Mínimo 2 caracteres." : null)}
+                validate={(v) => (v.trim().length < 2 ? "Mínimo 2 caracteres." : null)}
                 submitLabel="Guardar"
                 loading={busy}
             />
@@ -131,8 +127,9 @@ function SessionTileBase({ session, active, onSelect, onRename, onDelete }: Prop
                 title="Eliminar sesión"
                 description={
                     <p>
-                        ¿Seguro que deseas eliminar <strong>{session.title || `sesión #${session.id}`}</strong>?
-                        Esta acción no se puede deshacer.
+                        ¿Seguro que deseas eliminar{" "}
+                        <strong>{session.title || `sesión #${session.id}`}</strong>? Esta acción no
+                        se puede deshacer.
                     </p>
                 }
                 confirmLabel="Eliminar"
