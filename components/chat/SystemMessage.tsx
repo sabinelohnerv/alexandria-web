@@ -61,10 +61,71 @@ type CodeRendererProps = {
     children?: React.ReactNode;
 } & React.HTMLAttributes<HTMLElement>;
 
+/* -------- Iconos -------- */
+
+const IconCopy = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+        <rect x="9" y="9" width="13" height="13" rx="2" />
+        <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+);
+
+const IconThumbUp = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+        <path d="M14 9V5a3 3 0 0 0-3-3l-1 7H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h9a3 3 0 0 0 3-3v-6a2 2 0 0 0-2-2h-1z" />
+    </svg>
+);
+
+const IconThumbDown = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+        <path d="M10 15v4a3 3 0 0 0 3 3l1-7h5a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-9a3 3 0 0 0-3 3v6a2 2 0 0 0 2 2h1z" />
+    </svg>
+);
+
+/* -------- Botón (presentacional) -------- */
+
+type FBButtonProps = {
+    children: React.ReactNode;
+    icon?: React.ReactNode;
+    ariaLabel: string;
+};
+
+const FeedbackButton: React.FC<FBButtonProps> = ({ children, icon, ariaLabel }) => (
+    <button
+        type="button"
+        aria-label={ariaLabel}
+        className={[
+            "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px]",
+            "border-slate-200 text-slate-600 hover:bg-slate-50 active:bg-slate-100",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand,#023f66)]/40",
+        ].join(" ")}
+    >
+        {icon}
+        <span>{children}</span>
+    </button>
+);
+
 /* -------- Componente -------- */
 
 export default function SystemMessage({ content, title }: Props) {
+    // Texto original para copiar:
+    const original = content;
+    // Texto transformado para render:
     const enhanced = highlightRefsFenceAware(normalize(content));
+
+    const [copied, setCopied] = React.useState(false);
+
+    async function onCopy() {
+        try {
+            await navigator.clipboard.writeText(original);
+            setCopied(true);
+            const t = setTimeout(() => setCopied(false), 1200);
+            // limpiar timeout si el componente desmonta durante la animación
+            return () => clearTimeout(t);
+        } catch {
+            // noop
+        }
+    }
 
     const mdComponents: Partial<Components> = {
         h1: (p) => <h2 className="text-base font-semibold" {...p} />,
@@ -118,7 +179,7 @@ export default function SystemMessage({ content, title }: Props) {
                 );
             }
 
-            // Evitar propagar props internos (como `node`, `inline`) al DOM:
+            // Evitar propagar props internos al DOM
             return (
                 <code className={["rounded border bg-slate-50 px-1 py-[1px] text-[12px]", className || ""].join(" ")}>
                     {raw.trim()}
@@ -137,7 +198,27 @@ export default function SystemMessage({ content, title }: Props) {
     };
 
     return (
-        <div className="max-w-[80%] bg-white border rounded-2xl p-4 shadow-sm">
+        <div className="max-w-[80%] bg-white border rounded-2xl p-4 pt-6 pr-16 shadow-sm group relative">
+            {/* Botón de Copiar (aparece al hover/focus) */}
+            <div className="absolute right-4 top-2">
+                <button
+                    type="button"
+                    aria-label="Copiar mensaje"
+                    onClick={onCopy}
+                    className={[
+                        "inline-flex items-center gap-1 text-[12.5px]",
+                        "opacity-0 pointer-events-none transition-opacity",
+                        "group-hover:opacity-100 group-hover:pointer-events-auto",
+                        "focus:opacity-100 focus:pointer-events-auto",
+                        "text-slate-600 hover:text-slate-900 underline-offset-2 hover:underline",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand,#023f66)]/40 rounded-sm",
+                    ].join(" ")}
+                >
+                    <IconCopy />
+                    <span>{copied ? "Copiado" : "Copiar"}</span>
+                </button>
+            </div>
+
             <div className="flex items-start gap-3">
                 {/* Icono */}
                 <div
@@ -146,14 +227,7 @@ export default function SystemMessage({ content, title }: Props) {
                     style={{ borderColor: "var(--brand)" }}
                     title="Sistema"
                 >
-                    <Image
-                        src="/brand/logo-mark.svg"
-                        alt="Sistema"
-                        width={26}
-                        height={26}
-                        priority
-                    />
-
+                    <Image src="/brand/logo-mark.svg" alt="Sistema" width={26} height={26} priority />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -164,6 +238,22 @@ export default function SystemMessage({ content, title }: Props) {
                             {enhanced}
                         </ReactMarkdown>
                     </div>
+
+                    {/* -------- Barra de Feedback (solo UI) -------- */}
+                    <div className="mt-3 pt-3 border-t border-slate-200">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="text-[12.5px] text-slate-500">¿Fue útil esta respuesta?</span>
+                            <div className="flex items-center gap-1.5">
+                                <FeedbackButton ariaLabel="Marcar como útil" icon={<IconThumbUp />}>
+                                    Sí
+                                </FeedbackButton>
+                                <FeedbackButton ariaLabel="Marcar como no útil" icon={<IconThumbDown />}>
+                                    No
+                                </FeedbackButton>
+                            </div>
+                        </div>
+                    </div>
+                    {/* -------------------------------------------- */}
                 </div>
             </div>
         </div>

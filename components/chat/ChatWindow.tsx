@@ -3,6 +3,7 @@
 import { useSearchStore } from "@/lib/search/store";
 import { useMemo, useRef, useEffect, useState } from "react";
 import SystemMessage from "@/components/chat/SystemMessage";
+import UserMessage from "@/components/chat/UserMessage";
 
 export default function ChatWindow() {
     const {
@@ -20,7 +21,7 @@ export default function ChatWindow() {
     );
 
     const messages = useMemo(
-        () => (currentId ? (messagesBySession[currentId] ?? []) : []),
+        () => (currentId ? messagesBySession[currentId] ?? [] : []),
         [messagesBySession, currentId]
     );
 
@@ -100,19 +101,12 @@ export default function ChatWindow() {
                         );
                     }
 
-                    // Usuario: burbuja degradada
+                    // Usuario: usa el nuevo componente
                     return (
-                        <div key={m.id} className="flex justify-end">
-                            <div
-                                className="max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow text-white"
-                                style={{
-                                    background:
-                                        "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)",
-                                }}
-                            >
-                                {m.content}
-                            </div>
-                        </div>
+                        <UserMessage
+                            key={m.id}
+                            content={m.content}
+                        />
                     );
                 })}
             </div>
