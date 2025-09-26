@@ -2,6 +2,7 @@
 
 import { useSearchStore } from "@/lib/search/store";
 import { useMemo, useRef, useEffect, useState } from "react";
+import SystemMessage from "@/components/chat/SystemMessage";
 
 export default function ChatWindow() {
     const {
@@ -49,7 +50,6 @@ export default function ChatWindow() {
         const content = text.trim();
         if (!content) return;
 
-        // GUARDA local: usa el id actual, no 'session.id' directamente
         const sid = currentId;
         if (!sid) return;
 
@@ -62,7 +62,7 @@ export default function ChatWindow() {
                 try {
                     await renameSession(sid, candidate);
                 } catch {
-                    // no bloquear envío por un fallo de rename
+                    /* noop */
                 }
             }
         }
@@ -91,28 +91,30 @@ export default function ChatWindow() {
                     </div>
                 )}
 
-                {messages.map((m) => (
-                    <div
-                        key={m.id}
-                        className={`flex ${m.role === "user" ? "justify-end" : "justify-start"
-                            }`}
-                    >
-                        <div
-                            className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow ${m.role === "user" ? "text-white" : "border bg-white"
-                                }`}
-                            style={
-                                m.role === "user"
-                                    ? {
-                                        background:
-                                            "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)",
-                                    }
-                                    : undefined
-                            }
-                        >
-                            {m.content}
+                {messages.map((m) => {
+                    if (m.role === "assistant" || m.role === "system") {
+                        return (
+                            <div key={m.id} className="flex justify-start">
+                                <SystemMessage content={m.content} />
+                            </div>
+                        );
+                    }
+
+                    // Usuario: burbuja degradada
+                    return (
+                        <div key={m.id} className="flex justify-end">
+                            <div
+                                className="max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow text-white"
+                                style={{
+                                    background:
+                                        "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)",
+                                }}
+                            >
+                                {m.content}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Composer */}

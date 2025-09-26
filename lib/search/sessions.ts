@@ -1,33 +1,30 @@
 import { fetchJson } from "@/lib/api/http";
 import type { ChatSession, Paginated } from "./types";
 
-export function listSessions(page?: number) {
-    const q = page ? `?page=${page}` : "";
-    return fetchJson<Paginated<ChatSession>>(`search/sessions/${q}`);
-}
+// lib/search/sessions.ts
+export const listSessions = () =>
+    fetchJson<Paginated<ChatSession>>("search/sessions/");
 
-export function getSession(id: number) {
-    return fetchJson<ChatSession>(`search/sessions/${id}/`);
-}
+export const getSession = (id: number) =>
+    fetchJson<ChatSession>(`search/sessions/${id}/`);
 
-export function createSession(title?: string) {
-    return fetchJson<ChatSession>("search/sessions/", {
+export const createSession = (title?: string) =>
+    fetchJson<ChatSession>("search/sessions/", {
         method: "POST",
-        body: JSON.stringify({ title: title ?? "" }),
+        body: JSON.stringify({ title }),
     });
-}
 
-export function renameSession(id: number, title: string) {
-    return fetchJson<ChatSession>(`search/sessions/${id}/`, {
+export const renameSession = (id: number, title: string) =>
+    fetchJson<ChatSession>(`search/sessions/${id}/`, {
         method: "PATCH",
         body: JSON.stringify({ title }),
     });
-}
 
-export function deleteSession(id: number) {
-    return fetchJson<void>(`search/sessions/${id}/`, { method: "DELETE" });
-}
+export const deleteSession = (id: number) =>
+    fetchJson<void>(`search/sessions/${id}/`, {
+        method: "DELETE",
+        parseAs: "text",
+    });
 
-export function restoreSession(id: number) {
-    return fetchJson<ChatSession>(`search/sessions/${id}/restore/`, { method: "POST" });
-}
+export const restoreSession = (id: number) =>
+    fetchJson<ChatSession>(`search/sessions/${id}/restore/`, { method: "POST" });

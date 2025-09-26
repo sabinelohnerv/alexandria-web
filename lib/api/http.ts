@@ -7,7 +7,6 @@ const API_BASE_SERVER =
 
 function isServer() { return typeof window === "undefined"; }
 
-// añade "/" final solo en mutaciones y antes del query
 function normalizePath(path: string, method?: string) {
     const m = (method ?? "GET").toUpperCase();
     const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(m);
@@ -17,9 +16,16 @@ function normalizePath(path: string, method?: string) {
     const query = qPos >= 0 ? path.slice(qPos) : "";
 
     let cleanBase = base.replace(/^\/+/, "");
-    if (isMutation && !cleanBase.endsWith("/") && !cleanBase.split("/").pop()?.includes(".")) {
-        cleanBase += "/";
-    }
+    const last = cleanBase.split("/").pop() || "";
+
+    // Añade "/" si es mutación O si la ruta empieza con "search/"
+    const needsSlash =
+        (isMutation || cleanBase.startsWith("search/")) &&
+        !cleanBase.endsWith("/") &&
+        !last.includes(".");
+
+    if (needsSlash) cleanBase += "/";
+
     return `${cleanBase}${query}`;
 }
 

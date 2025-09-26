@@ -17,7 +17,7 @@ export default function SearchSessionsPage() {
         setLoading(true);
         setErr(null);
         try {
-            const res = await listSessions(page);
+            const res = await listSessions();
             setData(res);
         } catch (e: any) {
             setErr(e.message ?? "Error");
@@ -47,8 +47,12 @@ export default function SearchSessionsPage() {
     }
 
     async function onDelete(id: number) {
-        await deleteSession(id);
-        setData((d) => d ? { ...d, results: d.results.filter(r => r.id !== id) } : d);
+        try {
+            await deleteSession(id);
+            setData(d => d ? { ...d, results: d.results.filter(r => r.id !== id) } : d);
+        } catch (e: any) {
+            alert(e?.message ?? "No se pudo eliminar la sesión.");
+        }
     }
 
     async function onRestore(id: number) {
