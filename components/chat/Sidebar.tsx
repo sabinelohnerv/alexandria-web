@@ -6,88 +6,82 @@ import { useSearchStore } from "@/lib/search/store";
 import SessionTile from "@/components/chat/SessionTile";
 
 function SidebarInner() {
-    const {
-        sessions,
-        currentId,
-        selectSession,
-        createSession,
-        renameSession,
-        deleteSession,
-        hydrateSessions,
-        loadingSessions,
-    } = useSearchStore();
+  const {
+    sessions,
+    currentId,
+    selectSession,
+    renameSession,
+    deleteSession,
+    hydrateSessions,
+    loadingSessions,
+    ensureDraft,           // ⬅️ nuevo
+    startDraftSession,     // ⬅️ nuevo
+  } = useSearchStore();
 
-    // Cargar sesiones al montar
-    useEffect(() => {
-        void hydrateSessions();
-    }, [hydrateSessions]);
+  // Al montar: hidrata y, cuando termine, garantiza un borrador activo
+  useEffect(() => {
+    (async () => {
+      await hydrateSessions();
+      ensureDraft(); // crea/selecciona "Búsqueda nueva" local
+    })();
+  }, [hydrateSessions, ensureDraft]);
 
-    // Si, una vez terminada la hidratación, no hay sesiones → crea una
-    useEffect(() => {
-        if (!loadingSessions && sessions.length === 0) {
-            (async () => {
-                const id = await createSession("Búsqueda nueva");
-                await selectSession(id);
-            })();
-        }
-    }, [loadingSessions, sessions.length, createSession, selectSession]);
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      {/* Header */}
+      <div className="p-4 border-b flex items-center justify-between">
+        <h2 className="font-semibold">Historial</h2>
+        <button
+          type="button"
+          onClick={() => {
+            const id = startDraftSession("Búsqueda nueva");
+            void selectSession(id);
+          }}
+          disabled={loadingSessions}
+          className="rounded-lg px-3 py-1 text-sm font-medium text-white disabled:opacity-60"
+          style={{ background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)" }}
+        >
+          Nueva
+        </button>
+      </div>
 
-    return (
-        <div className="flex h-full min-h-0 flex-col">
-            {/* Header */}
-            <div className="p-4 border-b flex items-center justify-between">
-                <h2 className="font-semibold">Historial</h2>
-                <button
-                    type="button"
-                    onClick={async () => {
-                        const id = await createSession("Búsqueda nueva");
-                        await selectSession(id);
-                    }}
-                    disabled={loadingSessions}
-                    className="rounded-lg px-3 py-1 text-sm font-medium text-white disabled:opacity-60"
-                    style={{ background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)" }}
-                >
-                    Nueva
-                </button>
-            </div>
+      {/* Lista de sesiones */}
+      <nav className="flex-1 min-h-0 overflow-y-scroll bg-white divide-y divide-gray-200">
+        {sessions.map((s) => (
+          <SessionTile
+            key={s.id}
+            session={s}
+            active={currentId === s.id}
+            onSelect={selectSession}
+            onRename={renameSession}
+            onDelete={deleteSession}
+          />
+        ))}
 
-            {/* Lista de sesiones */}
-            <nav className="flex-1 min-h-0 overflow-y-scroll bg-white divide-y divide-gray-200">
-                {sessions.map((s) => (
-                    <SessionTile
-                        key={s.id}
-                        session={s}
-                        active={currentId === s.id}
-                        onSelect={selectSession}
-                        onRename={renameSession}
-                        onDelete={deleteSession}
-                    />
-                ))}
-
-                {!loadingSessions && sessions.length === 0 && (
-                    <div className="p-4 text-sm text-slate-500">No hay sesiones todavía.</div>
-                )}
-            </nav>
-        </div>
-    );
+        {!loadingSessions && sessions.length === 0 && (
+          <div className="p-4 text-sm text-slate-500">No hay sesiones todavía.</div>
+        )}
+      </nav>
+    </div>
+  );
 }
 
 export default function Sidebar() {
-    const { sidebarOpen } = useUIStore();
+  const { sidebarOpen } = useUIStore();
 
-    return (
-        <>
-            {/* Desktop */}
-            <aside className="hidden md:flex w-72 shrink-0 flex-col border-r bg-white min-h-0">
-                <SidebarInner />
-            </aside>
+  return (
+    <>
+      {/* Desktop */}
+      <aside className="hidden md:flex w-72 shrink-0 flex-col border-r bg-white min-h-0">
+        <SidebarInner />
+      </aside>
 
-            {/* Mobile */}
-            {sidebarOpen && (
-                <div className="fixed top-14 bottom-0 left-0 z-50 w-80 md:hidden bg-white border-r flex flex-col min-h-0">
-                    <SidebarInner />
-                </div>
-            )}
-        </>
-    );
+      {/* Mobile */}
+      {sidebarOpen && (
+        <div className="fixed top-14 bottom-0 left-0 z-50 w-80 md:hidden bg-white border-r flex flex-col min-h-0">
+          <SidebarInner />
+        </div>
+      )}
+    </>
+  );
 }

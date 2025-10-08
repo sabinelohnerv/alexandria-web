@@ -11,7 +11,6 @@ export default function ChatWindow() {
         currentId,
         messagesBySession,
         selectSession,
-        renameSession,
         sendAsk,
     } = useSearchStore();
 
@@ -27,15 +26,13 @@ export default function ChatWindow() {
 
     const [text, setText] = useState("");
     const viewRef = useRef<HTMLDivElement>(null);
-    const messageCount = messages.length;
 
     useEffect(() => {
         const el = viewRef.current;
         if (el) el.scrollTop = el.scrollHeight;
-    }, [messageCount]);
+    }, [messages.length]);
 
     useEffect(() => {
-        // asegurar sesión seleccionada (por si carga directo a /search)
         if (!session && sessions[0]) void selectSession(sessions[0].id);
     }, [session, sessions, selectSession]);
 
@@ -49,27 +46,12 @@ export default function ChatWindow() {
 
     async function onSend() {
         const content = text.trim();
-        if (!content) return;
-
-        const sid = currentId;
-        if (!sid) return;
+        if (!content || !currentId) return;
 
         setText("");
 
-        // si es el primer mensaje, renombra con el principio de la consulta
-        if (messages.length === 0) {
-            const candidate = content.slice(0, 30);
-            if (candidate) {
-                try {
-                    await renameSession(sid, candidate);
-                } catch {
-                    /* noop */
-                }
-            }
-        }
-
         try {
-            await sendAsk(sid, content);
+            await sendAsk(currentId, content);
         } catch (e) {
             console.error(e);
             alert("Hubo un error enviando la consulta.");
@@ -79,11 +61,8 @@ export default function ChatWindow() {
     return (
         <section className="flex-1 h-full min-h-0 flex flex-col">
             {/* Mensajes */}
-            <div
-                ref={viewRef}
-                className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3"
-            >
-                {messageCount === 0 && (
+            <div ref={viewRef} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3">
+                {messages.length === 0 && (
                     <div className="mx-auto mt-10 max-w-xl rounded-2xl border bg-white p-6 text-center">
                         <h3 className="text-lg font-semibold">¡Bienvenido a Alexandria!</h3>
                         <p className="text-sm text-slate-600 mt-1">
@@ -92,23 +71,15 @@ export default function ChatWindow() {
                     </div>
                 )}
 
-                {messages.map((m) => {
-                    if (m.role === "assistant" || m.role === "system") {
-                        return (
-                            <div key={m.id} className="flex justify-start">
-                                <SystemMessage content={m.content} />
-                            </div>
-                        );
-                    }
-
-                    // Usuario: usa el nuevo componente
-                    return (
-                        <UserMessage
-                            key={m.id}
-                            content={m.content}
-                        />
-                    );
-                })}
+                {messages.map((m) =>
+                    m.role === "assistant" || m.role === "system" ? (
+                        <div key={m.id} className="flex justify-start">
+                            <SystemMessage content={m.content} />
+                        </div>
+                    ) : (
+                        <UserMessage key={m.id} content={m.content} />
+                    )
+                )}
             </div>
 
             {/* Composer */}
@@ -120,16 +91,13 @@ export default function ChatWindow() {
                         onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && onSend()}
                         placeholder="Escribe un mensaje..."
                         className="flex-1 rounded-xl border bg-white p-3 text-sm outline-none
-                       focus-visible:ring-2 focus-visible:ring-[--brand] focus-visible:ring-offset-2"
+              focus-visible:ring-2 focus-visible:ring-[--brand] focus-visible:ring-offset-2"
                     />
                     <button
                         onClick={onSend}
                         className="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60
-                       hover:-translate-y-[1px] transition-transform"
-                        style={{
-                            background:
-                                "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)",
-                        }}
+              hover:-translate-y-[1px] transition-transform"
+                        style={{ background: "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)" }}
                         disabled={!text.trim()}
                     >
                         Enviar
