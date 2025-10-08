@@ -53,6 +53,9 @@ export default function SearchSessionDetailPage() {
             created_at: new Date().toISOString(),
             answer_json: null,
             latency_ms: null,
+            useful_count: 0,
+            not_useful_count: 0,
+            my_feedback_label: null
         };
         setMessages((m) => [...m, tempUser]);
         setQuery("");

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type Role = "user" | "assistant" | "system";
+export type FeedbackLabel = "useful" | "not_useful";
 
 export interface ChatSession {
     id: number;
@@ -17,6 +18,9 @@ export interface ChatMessage {
     answer_json?: any | null;
     latency_ms?: number | null;
     created_at: string;
+    useful_count: number;
+    not_useful_count: number;
+    my_feedback_label: FeedbackLabel | null;
 }
 
 export interface SearchHit {
