@@ -115,7 +115,6 @@ export default function SystemMessage({ content, title, messageId, sessionId }: 
     const original = content;
     const enhanced = highlightRefsFenceAware(normalize(content));
 
-    // ⛑️ FIX: seleccionar slices por separado (evita objeto nuevo en cada render)
     const feedbackCounts = useSearchStore((s) => s.feedbackCounts);
     const myFeedback = useSearchStore((s) => s.myFeedback);
     const feedbackSubmitting = useSearchStore((s) => s.feedbackSubmitting);
