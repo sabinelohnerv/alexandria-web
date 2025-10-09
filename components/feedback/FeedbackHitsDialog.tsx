@@ -4,6 +4,7 @@
 import * as React from "react";
 import { fetchMessageHits, type SearchHitDTO } from "@/lib/search/hits";
 import HitTile from "@/components/feedback/HitTile";
+import InlineDocViewer from "@/components/viewer/InlineDocViewer";
 
 type Props = {
     open: boolean;
@@ -17,7 +18,11 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
     const [error, setError] = React.useState<string | null>(null);
     const [hits, setHits] = React.useState<SearchHitDTO[]>([]);
 
-    // ⚠️ Hooks siempre en el tope, sin returns condicionales antes
+    // Estado del visor embebido
+    const [viewerUrl, setViewerUrl] = React.useState<string | null>(null);
+    const [viewerHit, setViewerHit] = React.useState<SearchHitDTO | null>(null);
+
+    // Carga cuando se abre
     React.useEffect(() => {
         let cancelled = false;
         async function run() {
@@ -30,7 +35,10 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
             setLoading(true);
             setError(null);
             try {
-                const data = await fetchMessageHits(sessionId, messageId, { includeSnippet: true, limit: 10 });
+                const data = await fetchMessageHits(sessionId, messageId, {
+                    includeSnippet: true,
+                    limit: 10,
+                });
                 if (!cancelled) setHits(data);
             } catch (e: any) {
                 if (!cancelled) setError(e?.message ?? "No se pudieron cargar los hits.");
@@ -39,23 +47,33 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
             }
         }
         run();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, [open, sessionId, messageId]);
 
-    // Firma que espera HitTile: (url, hit)
-    const handleOpenPdf = React.useCallback((url: string, _hit: SearchHitDTO) => {
+    // Recibe la URL firmada desde HitTile y abre el visor
+    const handleOpenPdf = React.useCallback((url: string, hit: SearchHitDTO) => {
         if (!url) return;
-        window.open(url, "_blank", "noopener,noreferrer");
+        setViewerUrl(url);
+        setViewerHit(hit);
     }, []);
 
-    // ✅ después de declarar todos los hooks
+    const handleCloseViewer = React.useCallback(() => {
+        setViewerUrl(null);
+        setViewerHit(null);
+    }, []);
+
     if (!open) return null;
 
     return (
         <div className="fixed inset-0 z-[60] grid place-items-center">
+            {/* backdrop */}
             <div className="absolute inset-0 bg-black/30" onClick={onClose} />
 
-            <div className="relative z-10 w-full max-w-3xl rounded-2xl bg-white shadow-xl border">
+            {/* modal */}
+            <div className="relative z-10 w-full max-w-6xl rounded-2xl bg-white shadow-xl border">
+                {/* header */}
                 <div className="flex items-center justify-between px-5 py-3 border-b">
                     <h3 className="text-sm font-semibold">Resultados citados en esta respuesta</h3>
                     <button
@@ -67,7 +85,8 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                     </button>
                 </div>
 
-                <div className="max-h-[70vh] overflow-y-auto p-4">
+                {/* body: layout responsive - lista | visor */}
+                <div className="p-4">
                     {!sessionId || !messageId ? (
                         <div className="text-sm text-red-600">
                             No se puede cargar: falta <code>sessionId</code> o <code>messageId</code>.
@@ -79,17 +98,33 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                     ) : hits.length === 0 ? (
                         <div className="text-sm text-slate-600">No se encontraron resultados para este mensaje.</div>
                     ) : (
-                        <ul className="space-y-3">
-                            {hits.map((h) => (
-                                <HitTile
-                                    key={h.id}
-                                    hit={h}
-                                    sessionId={sessionId!}
-                                    messageId={messageId!}
-                                    onOpenPdf={handleOpenPdf}
-                                />
-                            ))}
-                        </ul>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                            {/* Lista de hits */}
+                            <div className={viewerUrl ? "lg:col-span-5" : "lg:col-span-12"}>
+                                <ul className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+                                    {hits.map((h) => (
+                                        <HitTile
+                                            key={h.id}
+                                            hit={h}
+                                            sessionId={sessionId!}
+                                            messageId={messageId!}
+                                            onOpenPdf={handleOpenPdf}
+                                        />
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {/* Visor embebido (aparece cuando hay URL) */}
+                            {viewerUrl && (
+                                <div className="lg:col-span-7">
+                                    <InlineDocViewer
+                                        url={viewerUrl}
+                                        title={viewerHit?.document?.title || undefined}
+                                        onClose={handleCloseViewer}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
