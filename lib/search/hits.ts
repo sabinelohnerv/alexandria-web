@@ -76,3 +76,14 @@ export async function fetchMessageHits(
     const data: HitsResponse = await res.json();
     return isPaginated<SearchHitDTO>(data) ? data.results : data;
 }
+
+
+export function getHitFileUrl(sessionId: number, messageId: number, hitId: number) {
+    const clean = `search/sessions/${sessionId}/messages/${messageId}/hits/${hitId}/file/`;
+    return `${BACKEND_PREFIX}${clean}`;
+}
+
+export function openHitFileNewTab(sessionId: number, messageId: number, hitId: number) {
+    const url = getHitFileUrl(sessionId, messageId, hitId);
+    window.open(url, "_blank", "noopener,noreferrer");
+}

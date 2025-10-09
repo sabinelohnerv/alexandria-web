@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import * as React from "react";
 import type { SearchHitDTO } from "@/lib/search/hits";
+import { getHitFileUrl, openHitFileNewTab } from "@/lib/search/hits";
 import PdfChip from "@/components/feedback/PdfChip";
 
-/* ── Iconos iguales a los de SystemMessage ─────────────────────────────── */
+/* ── Iconos (coherentes con SystemMessage) ─────────────────────────────── */
 const ThumbUp = ({ active }: { active?: boolean }) => (
     <svg viewBox="0 0 24 24" width="16" height="16" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
         <path d="M14 9V5a3 3 0 0 0-3-3l-1 7H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h9a3 3 0 0 0 3-3v-6a2 2 0 0 0-2-2h-1z" />
@@ -17,7 +17,7 @@ const ThumbDown = ({ active }: { active?: boolean }) => (
     </svg>
 );
 
-/* ── Botón estilo SystemMessage ─────────────────────────────────────────── */
+/* ── Botón icónico con el mismo look ───────────────────────────────────── */
 const IconBtn: React.FC<
     React.PropsWithChildren<{ ariaLabel: string; active?: boolean; disabled?: boolean; onClick?: () => void }>
 > = ({ ariaLabel, active, disabled, onClick, children }) => (
@@ -39,7 +39,7 @@ const IconBtn: React.FC<
     </button>
 );
 
-/* ── Utilidad: encabezado compacto ─────────────────────────────────────── */
+/* ── Encabezado compacto cuando no hay título ──────────────────────────── */
 function compactHeader(h: SearchHitDTO) {
     const a = h.document?.authority || "";
     const t = h.document?.doc_type || "";
@@ -54,14 +54,28 @@ function compactHeader(h: SearchHitDTO) {
     return [leftStr, rightStr].filter(Boolean).join(" · ");
 }
 
+/* ── Props ─────────────────────────────────────────────────────────────── */
 type HitTileProps = {
     hit: SearchHitDTO;
-    onOpenPdf?: (hit: SearchHitDTO) => void; // integrar visor PDF
+    sessionId: number;
+    messageId: number;
+    /** Si quieres manejar un visor embebido, te paso la URL ya construida */
+    onOpenPdf?: (url: string, hit: SearchHitDTO) => void;
 };
 
-export default function HitTile({ hit, onOpenPdf }: HitTileProps) {
+/* ── Componente ───────────────────────────────────────────────────────── */
+export default function HitTile({ hit, sessionId, messageId, onOpenPdf }: HitTileProps) {
     const header = compactHeader(hit);
     const hasTitle = !!hit.document?.title && hit.document.title.trim().length > 0;
+
+    const handleOpenPdf = () => {
+        const url = getHitFileUrl(sessionId, messageId, hit.id);
+        if (onOpenPdf) {
+            onOpenPdf(url, hit);
+        } else {
+            openHitFileNewTab(sessionId, messageId, hit.id);
+        }
+    };
 
     return (
         <li className="rounded-xl border p-3 hover:bg-slate-50">
@@ -82,7 +96,7 @@ export default function HitTile({ hit, onOpenPdf }: HitTileProps) {
 
                     {/* Chip Ver PDF */}
                     <div className="mt-2">
-                        <PdfChip onClick={() => onOpenPdf?.(hit)} />
+                        <PdfChip label="Ver PDF" onClick={handleOpenPdf} />
                     </div>
                 </div>
 

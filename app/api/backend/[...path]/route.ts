@@ -1,3 +1,4 @@
+// app/api/backend/[...path]/route.ts
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
@@ -8,6 +9,12 @@ const API_BASE =
     process.env.API_BASE_URL ||
     process.env.NEXT_PUBLIC_API_BASE_URL ||
     "http://127.0.0.1:8000/api";
+
+
+const REWRITE_FROM = process.env.FILE_HOST_REWRITE_FROM;
+const REWRITE_TO = process.env.FILE_HOST_REWRITE_TO;
+const rewriteLocation = (loc: string) =>
+    REWRITE_FROM && REWRITE_TO ? loc.replace(REWRITE_FROM, REWRITE_TO) : loc;
 
 export async function GET(req: NextRequest) { return proxy(req); }
 export async function POST(req: NextRequest) { return proxy(req); }
@@ -31,6 +38,7 @@ async function proxy(req: NextRequest) {
     const last = relative.split("/").pop() || "";
     const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
 
+    // Añade trailing slash para DRF (mutaciones) y rutas search/*
     if ((isMutation || relative.startsWith("search/")) &&
         !relative.endsWith("/") &&
         !last.includes(".")) {
@@ -41,30 +49,40 @@ async function proxy(req: NextRequest) {
     const hasBody = !["GET", "HEAD"].includes(req.method);
     const body = hasBody ? await req.text() : undefined;
 
+    // No seguir redirecciones; se devuelven al navegador
     const res = await fetch(target, {
         method: req.method,
         headers: {
-            "Content-Type": req.headers.get("content-type") || "application/json",
+            ...(req.headers.get("content-type") ? { "Content-Type": req.headers.get("content-type")! } : {}),
             ...(access ? { Authorization: `Bearer ${access}` } : {}),
         },
         body,
-        redirect: "follow",
+        redirect: "manual",
+        // credentials no aplican en fetch del edge/server; cookies ya se adjuntan via header Authorization arriba
     });
 
-    // 204/304 no llevan body ni ciertos headers
-    const noBodyStatus = res.status === 204 || res.status === 304;
-    if (noBodyStatus) {
+    // Manejo explícito de 3xx
+    if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location");
+        if (loc) {
+            const finalLoc = rewriteLocation(loc);
+            return NextResponse.redirect(finalLoc, res.status);
+        }
+        return new NextResponse(null, { status: res.status, headers: res.headers });
+    }
+
+    // 204/304 sin body
+    if (res.status === 204 || res.status === 304) {
         const headers = new Headers(res.headers);
-        headers.delete("content-type");
         headers.delete("content-length");
+        headers.delete("content-type");
         return new NextResponse(null, { status: res.status, headers });
     }
 
-    const text = await res.text();
-    return new NextResponse(text, {
+    // Para 200/errores: stream del body tal cual (binario o json) respetando headers
+    const headers = new Headers(res.headers);
+    return new NextResponse(res.body, {
         status: res.status,
-        headers: {
-            "content-type": res.headers.get("content-type") || "application/json",
-        },
+        headers,
     });
 }

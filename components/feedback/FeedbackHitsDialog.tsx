@@ -17,7 +17,7 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
     const [error, setError] = React.useState<string | null>(null);
     const [hits, setHits] = React.useState<SearchHitDTO[]>([]);
 
-    // carga cuando se abre
+    // ⚠️ Hooks siempre en el tope, sin returns condicionales antes
     React.useEffect(() => {
         let cancelled = false;
         async function run() {
@@ -39,28 +39,23 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
             }
         }
         run();
-        return () => {
-            cancelled = true;
-        };
+        return () => { cancelled = true; };
     }, [open, sessionId, messageId]);
 
-    if (!open) return null;
+    // Firma que espera HitTile: (url, hit)
+    const handleOpenPdf = React.useCallback((url: string, _hit: SearchHitDTO) => {
+        if (!url) return;
+        window.open(url, "_blank", "noopener,noreferrer");
+    }, []);
 
-    // Placeholder para integrar visor PDF
-    const onOpenPdf = (hit: SearchHitDTO) => {
-        // TODO: integrar visor; por ahora solo log
-        // Puedes abrir un drawer/modal con el PDF del documento: hit.document?.pdf_url (si viene) o vía otro endpoint.
-        console.log("Ver PDF de hit:", hit.id, hit.document);
-    };
+    // ✅ después de declarar todos los hooks
+    if (!open) return null;
 
     return (
         <div className="fixed inset-0 z-[60] grid place-items-center">
-            {/* backdrop */}
             <div className="absolute inset-0 bg-black/30" onClick={onClose} />
 
-            {/* modal */}
             <div className="relative z-10 w-full max-w-3xl rounded-2xl bg-white shadow-xl border">
-                {/* header */}
                 <div className="flex items-center justify-between px-5 py-3 border-b">
                     <h3 className="text-sm font-semibold">Resultados citados en esta respuesta</h3>
                     <button
@@ -72,7 +67,6 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                     </button>
                 </div>
 
-                {/* body */}
                 <div className="max-h-[70vh] overflow-y-auto p-4">
                     {!sessionId || !messageId ? (
                         <div className="text-sm text-red-600">
@@ -87,7 +81,13 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                     ) : (
                         <ul className="space-y-3">
                             {hits.map((h) => (
-                                <HitTile key={h.id} hit={h} onOpenPdf={onOpenPdf} />
+                                <HitTile
+                                    key={h.id}
+                                    hit={h}
+                                    sessionId={sessionId!}
+                                    messageId={messageId!}
+                                    onOpenPdf={handleOpenPdf}
+                                />
                             ))}
                         </ul>
                     )}
