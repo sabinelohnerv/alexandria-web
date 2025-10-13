@@ -54,6 +54,30 @@ function isPaginated<T>(x: any): x is Paginated<T> {
     return x && typeof x === "object" && Array.isArray(x.results);
 }
 
+export function normalizeDocType(raw?: string | null) {
+    if (!raw) return "";
+    const s = String(raw).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    if (!s) return "";
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+export function compactHeader(h: SearchHitDTO) {
+    const a = h.document?.authority || "";
+    const t = normalizeDocType(h.document?.doc_type);
+    const n = h.document?.number || "";
+
+    const parts: string[] = [];
+    if (a) parts.push(a);
+    if (t) parts.push(t);
+
+    const right: string[] = [];
+    if (n) right.push(`Nº ${n}`);
+
+    const leftStr = parts.filter(Boolean).join(" · ");
+    const rightStr = right.filter(Boolean).join(" ");
+    return [leftStr, rightStr].filter(Boolean).join(" · ");
+}
+
 export async function fetchMessageHits(
     sessionId: number,
     messageId: number,

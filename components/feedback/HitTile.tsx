@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import type { SearchHitDTO } from "@/lib/search/hits";
-import { getHitFileUrl, openHitFileNewTab } from "@/lib/search/hits";
+import { getHitFileUrl, openHitFileNewTab, compactHeader } from "@/lib/search/hits";
 import PdfChip from "@/components/feedback/PdfChip";
 import {
     postHitFeedback,
@@ -44,34 +44,6 @@ const IconBtn: React.FC<
         {children}
     </button>
 );
-
-/* ── Encabezado compacto cuando no hay título ──────────────────────────── */
-function normalizeDocType(raw?: string | null) {
-    if (!raw) return "";
-    const s = String(raw)
-        .replace(/[_-]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    if (!s) return "";
-    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-}
-
-function compactHeader(h: SearchHitDTO) {
-    const a = h.document?.authority || "";
-    const t = normalizeDocType(h.document?.doc_type);
-    const n = h.document?.number || "";
-
-    const parts: string[] = [];
-    if (a) parts.push(a);
-    if (t) parts.push(t);
-
-    const right: string[] = [];
-    if (n) right.push(`Nº ${n}`);
-
-    const leftStr = parts.filter(Boolean).join(" · ");
-    const rightStr = right.filter(Boolean).join(" ");
-    return [leftStr, rightStr].filter(Boolean).join(" · ");
-}
 
 /* ── Props ─────────────────────────────────────────────────────────────── */
 type HitTileProps = {

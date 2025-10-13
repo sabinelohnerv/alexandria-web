@@ -10,7 +10,20 @@ import Avatar from "./system/Avatar";
 import Header from "./system/Header";
 import Body from "./system/Body";
 import Footer from "./system/Footer";
-import { normalize, highlightRefsFenceAware } from "./system/markdown";
+
+import {
+    normalize,
+    highlightRefsFenceAware,
+    replaceSourcesSectionFenceAware,
+    SOURCES_SLOT,
+} from "./system/markdown";
+
+import {
+    fetchMessageHits,
+    type SearchHitDTO,
+} from "@/lib/search/hits";
+
+import { buildSourcesSectionMarkdown } from "./system/SourcesSection";
 
 type Props = {
     content: string;
@@ -20,17 +33,59 @@ type Props = {
 };
 
 export default function SystemMessage({ content, title, messageId, sessionId }: Props) {
-    const original = content;
-    const enhanced = highlightRefsFenceAware(normalize(content));
+    const canFeedback =
+        typeof messageId === "number" && messageId > 0 &&
+        typeof sessionId === "number" && sessionId > 0;
 
+    // 1) Normaliza y deja un SLOT donde estaba “Fuentes/Referencias/Bibliografía…”
+    const normalized = normalize(content);
+    const withSlot = replaceSourcesSectionFenceAware(normalized, SOURCES_SLOT);
+
+    // 2) Estado: markdown final (se completa cuando lleguen los hits)
+    const [finalMd, setFinalMd] = React.useState<string>(withSlot);
+
+    // 3) Traer hits e inyectar sección desde el helper externo
+    React.useEffect(() => {
+        let cancelled = false;
+
+        async function run() {
+            if (!canFeedback) {
+                if (!cancelled) setFinalMd((prev) => prev.replace(SOURCES_SLOT, ""));
+                return;
+            }
+            try {
+                const hits: SearchHitDTO[] = await fetchMessageHits(sessionId!, messageId!, {
+                    includeSnippet: false, // cambia a true si quieres mostrar snippets
+                    limit: 12,
+                });
+
+                const block = buildSourcesSectionMarkdown(hits, sessionId!, messageId!, {
+                    includeSnippet: false, numbered: false
+                });
+
+                if (!cancelled) {
+                    setFinalMd((prev) => {
+                        if (prev.includes(SOURCES_SLOT)) return prev.replace(SOURCES_SLOT, block);
+                        return prev + (block ? `\n\n${block}` : "");
+                    });
+                }
+            } catch {
+                if (!cancelled) setFinalMd((prev) => prev.replace(SOURCES_SLOT, ""));
+            }
+        }
+
+        run();
+        return () => { cancelled = true; };
+    }, [canFeedback, sessionId, messageId, withSlot]);
+
+    // 4) Post-proceso: refs fence-aware (después de inyectar fuentes)
+    const enhanced = highlightRefsFenceAware(finalMd);
+
+    // ===== Feedback store (igual) =====
     const feedbackCounts = useSearchStore((s) => s.feedbackCounts);
     const myFeedback = useSearchStore((s) => s.myFeedback);
     const feedbackSubmitting = useSearchStore((s) => s.feedbackSubmitting);
     const toggleFeedback = useSearchStore((s) => s.toggleFeedback);
-
-    const canFeedback =
-        typeof messageId === "number" && messageId > 0 &&
-        typeof sessionId === "number" && sessionId > 0;
 
     const counts = canFeedback ? feedbackCounts[messageId!] ?? { useful: 0, not_useful: 0 } : { useful: 0, not_useful: 0 };
     const mine = (canFeedback ? myFeedback[messageId!] ?? null : null) as "useful" | "not_useful" | null;
@@ -41,16 +96,19 @@ export default function SystemMessage({ content, title, messageId, sessionId }: 
 
     const voteAndOpen = async (label: "useful" | "not_useful") => {
         if (!canFeedback) return;
-        await toggleFeedback(messageId!, label, sessionId!);
-        setOpenDialog(true);
+        try {
+            await toggleFeedback(messageId!, label, sessionId!);
+        } finally {
+            setOpenDialog(true);
+        }
     };
 
     return (
         <>
             <MessageShell>
-                <CopyButton text={original} />
+                {/* Copia el markdown final, ya con la sección de fuentes inyectada */}
+                <CopyButton text={finalMd} />
 
-                {/* LADO A LADO: avatar a la izquierda, todo el contenido a la derecha */}
                 <div className="flex items-start gap-3">
                     <Avatar />
                     <div className="flex-1 min-w-0">
