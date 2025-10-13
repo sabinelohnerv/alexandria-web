@@ -104,11 +104,11 @@ export default function HitTile({ hit, sessionId, messageId, onOpenPdf }: HitTil
                 <div className="shrink-0 flex flex-col items-end gap-2">
                     <span className="text-[11px] text-slate-600 border rounded-full px-2 py-0.5 bg-slate-50">Rank #{hit.rank}</span>
                     <div className="flex items-center gap-1.5">
-                        <IconBtn ariaLabel="Like al hit (próximamente)" disabled>
+                        <IconBtn ariaLabel="Like al hit (próximamente)">
                             <ThumbUp />
                             <span>Útil</span>
                         </IconBtn>
-                        <IconBtn ariaLabel="Dislike al hit (próximamente)" disabled>
+                        <IconBtn ariaLabel="Dislike al hit (próximamente)">
                             <ThumbDown />
                             <span>No útil</span>
                         </IconBtn>

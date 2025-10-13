@@ -35,6 +35,7 @@ export type CoreState = {
     loadingSessions: boolean;
     loadingMessages: Record<number, boolean>;
     error?: string | null;
+    suppressNextDraftDiscard?: boolean;
 };
 
 export type FeedbackState = {

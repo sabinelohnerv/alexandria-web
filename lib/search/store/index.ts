@@ -23,9 +23,17 @@ export const useSearchStore = create<SearchStore>()(
         const fb = createFeedbackSlice(set as any, get as any);
 
         const originalSelect = core.selectSession;
+
         core.selectSession = async (id: number) => {
             const prev = get().currentId;
-            if (prev && prev !== id) get().discardIfEmptyDraft(prev);
+
+            if (prev && prev !== id) {
+                const prevSession = get().sessions.find((s) => s.id === prev);
+                if (prevSession?.isLocal) {
+                    get().discardIfEmptyDraft(prev);
+                }
+            }
+
             set({ currentId: id });
 
             const isLocal = get().sessions.find((s) => s.id === id)?.isLocal;
@@ -40,7 +48,7 @@ export const useSearchStore = create<SearchStore>()(
                 const msgs = res.results.map(toUIMessage).sort((a, b) => a.id - b.id);
                 set((state) => ({ messagesBySession: { ...state.messagesBySession, [id]: msgs } }));
 
-                get().hydrateFromMessages(res.results);
+                get().hydrateFromMessages?.(res.results as any);
 
                 await (originalSelect as any)(id);
             } finally {
@@ -48,9 +56,6 @@ export const useSearchStore = create<SearchStore>()(
             }
         };
 
-        return {
-            ...core,
-            ...fb,
-        } as SearchStore;
+        return { ...core, ...fb } as SearchStore;
     })
 );

@@ -42,6 +42,7 @@ export const coreInitialState: CoreState = {
     loadingSessions: false,
     loadingMessages: {},
     error: null,
+    suppressNextDraftDiscard: false,
 };
 
 export function createCoreSlice(set: SetFn<CoreSlice>, get: GetFn<CoreSlice>): CoreSlice {
@@ -63,9 +64,13 @@ export function createCoreSlice(set: SetFn<CoreSlice>, get: GetFn<CoreSlice>): C
                 set({ sessions });
 
                 const cur = get().currentId;
-                if (!cur && sessions.length > 0) {
-                    set({ currentId: sessions[0].id });
-                    void get().selectSession(sessions[0].id);
+                if (!cur) {
+                    const local = get().sessions.find((s) => s.isLocal);
+                    if (local) {
+                        set({ currentId: local.id });
+                    } else {
+                        get().startDraftSession();
+                    }
                 }
             } catch (e: any) {
                 set({ error: e.message ?? "Error al cargar sesiones" });
