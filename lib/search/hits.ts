@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// lib/search/hits.ts
 
 const BACKEND_PREFIX = "/api/backend/";
 
@@ -8,7 +7,7 @@ function buildUrl(path: string) {
     return `${BACKEND_PREFIX}${clean}`;
 }
 
-/* ==== Tipos (según la guía) ==== */
+/* ==== Tipos  ==== */
 export type DocumentBrief = {
     id: number;
     title: string;

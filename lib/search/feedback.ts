@@ -23,6 +23,22 @@ export async function postFeedback(body: FeedbackPost) {
     });
 }
 
+export async function postHitFeedback(
+    messageId: number,
+    hitId: number,
+    label: FeedbackLabel
+) {
+    return postFeedback({ message: messageId, hit: hitId, label });
+}
+
+export async function deleteHitFeedback(messageId: number, hitId: number) {
+    const qs = new URLSearchParams({
+        message_id: String(messageId),
+        hit_id: String(hitId),
+    }).toString();
+    return fetchJson<{ deleted: number }>(`search/feedback/?${qs}`, { method: "DELETE" });
+}
+
 /**
  * DELETE /api/search/feedback/?message_id=:id
  * resp: { deleted: 1|0 }

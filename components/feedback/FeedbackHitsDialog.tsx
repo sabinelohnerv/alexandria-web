@@ -75,7 +75,7 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
             <div className="relative z-10 w-full max-w-6xl rounded-2xl bg-white shadow-xl border">
                 {/* header */}
                 <div className="flex items-center justify-between px-5 py-3 border-b">
-                    <h3 className="text-sm font-semibold">Resultados citados en esta respuesta</h3>
+                    <h3 className="text-sm font-semibold">Fuentes citadas en esta respuesta</h3>
                     <button
                         type="button"
                         onClick={onClose}

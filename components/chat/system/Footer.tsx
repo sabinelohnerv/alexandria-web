@@ -18,7 +18,7 @@ type Props = {
 export default function Footer({
     onOpenHits,
     canFeedback,
-    counts,
+    //counts,
     mine,
     busy,
     onVoteUseful,
@@ -26,21 +26,13 @@ export default function Footer({
 }: Props) {
     return (
         <div className="mt-3 pt-3 border-t border-slate-200">
-            {/* Layout: izquierda (ver resultados) | divisor | derecha (feedback) */}
-            <div className="grid grid-cols-[1fr_1px_1fr] items-stretch gap-3 sm:gap-4">
-                {/* Izquierda */}
-                <div className="flex items-center justify-start">
-                    <BarButton ariaLabel="Ver resultados citados" onClick={onOpenHits} disabled={!canFeedback} icon={<IconResults />}>
-                        Ver resultados
-                    </BarButton>
-                </div>
-
-                {/* Divisor centro */}
-                <span aria-hidden className="w-px bg-slate-200 block self-stretch" />
-
-                {/* Derecha */}
-                <div className="flex items-center justify-end gap-2">
-                    <span className="text-[12.5px] text-slate-500">¿Fue útil esta respuesta?</span>
+            {/* Móvil: apilado (feedback → resultados). sm+: [izq | divisor | der] */}
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1px_1fr] items-stretch gap-3 sm:gap-4">
+                {/* IZQUIERDA: Feedback */}
+                <div className="flex items-center justify-start gap-2 sm:gap-2">
+                    <span className="text-xs sm:text-[12.5px] text-slate-500">
+                        ¿Fue útil esta respuesta?
+                    </span>
                     <div className="flex items-center gap-1.5">
                         <BarButton
                             ariaLabel="Marcar como útil"
@@ -49,7 +41,7 @@ export default function Footer({
                             disabled={!canFeedback || busy}
                             icon={<ThumbUp active={mine === "useful"} />}
                         >
-                            Sí {counts.useful > 0 ? `(${counts.useful})` : ""}
+                            Sí
                         </BarButton>
                         <BarButton
                             ariaLabel="Marcar como no útil"
@@ -58,9 +50,24 @@ export default function Footer({
                             disabled={!canFeedback || busy}
                             icon={<ThumbDown active={mine === "not_useful"} />}
                         >
-                            No {counts.not_useful > 0 ? `(${counts.not_useful})` : ""}
+                            No
                         </BarButton>
                     </div>
+                </div>
+
+                {/* Divisor centro (oculto en pantallas pequeñas) */}
+                <span aria-hidden className="hidden sm:block w-px bg-slate-200 self-stretch" />
+
+                {/* DERECHA: Ver resultados */}
+                <div className="flex items-center justify-end">
+                    <BarButton
+                        ariaLabel="Ver fuentes citadas"
+                        onClick={onOpenHits}
+                        disabled={!canFeedback}
+                        icon={<IconResults />}
+                    >
+                        Ver fuentes citadas
+                    </BarButton>
                 </div>
             </div>
         </div>
