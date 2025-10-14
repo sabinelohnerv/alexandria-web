@@ -66,7 +66,7 @@ export default function Footer({
                         disabled={!canFeedback}
                         icon={<IconResults />}
                     >
-                        Ver fuentes citadas
+                        Calificar fuentes citadas
                     </BarButton>
                 </div>
             </div>

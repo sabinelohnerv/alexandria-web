@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { fetchMessageHits, type SearchHitDTO } from "@/lib/search/hits";
+import { fetchMessageHits, type SearchHitDTO, getHitFileUrl } from "@/lib/search/hits";
 import HitTile from "@/components/feedback/HitTile";
 import InlineDocViewer from "@/components/viewer/InlineDocViewer";
 
@@ -18,9 +18,11 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
     const [error, setError] = React.useState<string | null>(null);
     const [hits, setHits] = React.useState<SearchHitDTO[]>([]);
 
-    // Estado del visor embebido
+    // NEW: estado de selección/visor
+    const [activeHitId, setActiveHitId] = React.useState<number | null>(null);
     const [viewerUrl, setViewerUrl] = React.useState<string | null>(null);
     const [viewerHit, setViewerHit] = React.useState<SearchHitDTO | null>(null);
+    const [viewerOpen, setViewerOpen] = React.useState<boolean>(false); // toggle mostrar/ocultar visor
 
     // Carga cuando se abre
     React.useEffect(() => {
@@ -34,6 +36,10 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
             }
             setLoading(true);
             setError(null);
+            setActiveHitId(null);
+            setViewerUrl(null);
+            setViewerHit(null);
+            setViewerOpen(false);
             try {
                 const data = await fetchMessageHits(sessionId, messageId, {
                     includeSnippet: true,
@@ -52,17 +58,84 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
         };
     }, [open, sessionId, messageId]);
 
-    // Recibe la URL firmada desde HitTile y abre el visor
-    const handleOpenPdf = React.useCallback((url: string, hit: SearchHitDTO) => {
-        if (!url) return;
-        setViewerUrl(url);
-        setViewerHit(hit);
-    }, []);
+    // Abre visor para un hit (desde tile o atajo)
+    const openForHit = React.useCallback(
+        (hit: SearchHitDTO) => {
+            if (!sessionId || !messageId) return;
+            const url = getHitFileUrl(sessionId, messageId, hit.id);
+            setActiveHitId(hit.id);
+            setViewerUrl(url);
+            setViewerHit(hit);
+            setViewerOpen(true);
+        },
+        [sessionId, messageId]
+    );
+
+    const handleOpenPdf = React.useCallback(
+        (url: string, hit: SearchHitDTO) => {
+            setActiveHitId(hit.id);
+            setViewerUrl(url);
+            setViewerHit(hit);
+            setViewerOpen(true);
+        },
+        []
+    );
 
     const handleCloseViewer = React.useCallback(() => {
         setViewerUrl(null);
         setViewerHit(null);
+        setViewerOpen(false);
     }, []);
+
+    // NEW: navegación con teclado
+    React.useEffect(() => {
+        if (!open) return;
+        function onKeyDown(e: KeyboardEvent) {
+            if (!hits.length) return;
+
+            const idx = activeHitId == null ? -1 : hits.findIndex(h => h.id === activeHitId);
+
+            // navegación lista
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                const next = hits[Math.min((idx === -1 ? 0 : idx + 1), hits.length - 1)];
+                if (next) setActiveHitId(next.id);
+            }
+            if (e.key === "ArrowUp") {
+                e.preventDefault();
+                const prev = hits[Math.max((idx === -1 ? 0 : idx - 1), 0)];
+                if (prev) setActiveHitId(prev.id);
+            }
+            // abrir seleccionado
+            if (e.key === "Enter" && idx !== -1) {
+                e.preventDefault();
+                openForHit(hits[idx]);
+            }
+            // siguiente/anterior en visor
+            if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && viewerOpen) {
+                e.preventDefault();
+                let nextIdx = idx;
+                if (e.key === "ArrowRight") nextIdx = Math.min(idx + 1, hits.length - 1);
+                if (e.key === "ArrowLeft") nextIdx = Math.max(idx - 1, 0);
+                const target = hits[nextIdx];
+                if (target) openForHit(target);
+            }
+            // cerrar visor
+            if (e.key === "Escape" && viewerOpen) {
+                e.preventDefault();
+                handleCloseViewer();
+            }
+        }
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [open, hits, activeHitId, viewerOpen, openForHit, handleCloseViewer]);
+
+    // NEW: al cambiar activo, hacer scroll al tile
+    React.useEffect(() => {
+        if (activeHitId == null) return;
+        const el = document.querySelector<HTMLElement>(`[data-hit-id="${activeHitId}"]`);
+        el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, [activeHitId]);
 
     if (!open) return null;
 
@@ -75,17 +148,36 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
             <div className="relative z-10 w-full max-w-6xl rounded-2xl bg-white shadow-xl border">
                 {/* header */}
                 <div className="flex items-center justify-between px-5 py-3 border-b">
-                    <h3 className="text-sm font-semibold">Fuentes citadas en esta respuesta</h3>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
-                    >
-                        Cerrar
-                    </button>
+                    <div className="flex items-center gap-3 min-w-0">
+                        <h3 className="text-sm font-semibold truncate">Fuentes citadas en esta respuesta</h3>
+                        {!viewerUrl ? (
+                            <span className="text-xs text-slate-500" aria-live="polite">
+                                Selecciona un documento para previsualizar
+                            </span>
+                        ) : null}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {viewerUrl ? (
+                            <button
+                                type="button"
+                                onClick={() => setViewerOpen(v => !v)}
+                                className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
+                                title={viewerOpen ? "Ocultar visor" : "Mostrar visor"}
+                            >
+                                {viewerOpen ? "Ocultar visor" : "Mostrar visor"}
+                            </button>
+                        ) : null}
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
                 </div>
 
-                {/* body: layout responsive - lista | visor */}
+                {/* body: lista | visor */}
                 <div className="p-4">
                     {!sessionId || !messageId ? (
                         <div className="text-sm text-red-600">
@@ -100,8 +192,8 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                             {/* Lista de hits */}
-                            <div className={viewerUrl ? "lg:col-span-5" : "lg:col-span-12"}>
-                                <ul className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+                            <div className={viewerUrl && viewerOpen ? "lg:col-span-5" : "lg:col-span-12"}>
+                                <ul className="space-y-3 max-h-[70vh] overflow-y-auto pr-1" role="listbox" aria-label="Resultados">
                                     {hits.map((h) => (
                                         <HitTile
                                             key={h.id}
@@ -109,18 +201,36 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                                             sessionId={sessionId!}
                                             messageId={messageId!}
                                             onOpenPdf={handleOpenPdf}
+                                            isActive={viewerOpen && activeHitId === h.id}
+                                            onSelect={() => setActiveHitId(h.id)}
+                                            dataHitId={h.id}
                                         />
                                     ))}
                                 </ul>
                             </div>
 
-                            {/* Visor embebido (aparece cuando hay URL) */}
-                            {viewerUrl && (
+                            {/* Visor embebido */}
+                            {viewerUrl && viewerOpen && (
                                 <div className="lg:col-span-7">
                                     <InlineDocViewer
                                         url={viewerUrl}
                                         title={viewerHit?.document?.title || undefined}
                                         onClose={handleCloseViewer}
+                                        className="shadow-sm"
+                                        rightNav={{
+                                            canPrev: !!activeHitId && hits.findIndex(h => h.id === activeHitId) > 0,
+                                            canNext: !!activeHitId && hits.findIndex(h => h.id === activeHitId) < hits.length - 1,
+                                            onPrev: () => {
+                                                if (activeHitId == null) return;
+                                                const idx = hits.findIndex(h => h.id === activeHitId);
+                                                if (idx > 0) openForHit(hits[idx - 1]);
+                                            },
+                                            onNext: () => {
+                                                if (activeHitId == null) return;
+                                                const idx = hits.findIndex(h => h.id === activeHitId);
+                                                if (idx < hits.length - 1) openForHit(hits[idx + 1]);
+                                            },
+                                        }}
                                     />
                                 </div>
                             )}
