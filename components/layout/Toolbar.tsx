@@ -62,7 +62,7 @@ Toolbar.Button = function Button({ variant = "primary", className, ...props }: B
 };
 
 type SearchProps = React.InputHTMLAttributes<HTMLInputElement> & {
-    shortcutHint?: string; // ej. "⌘K"
+    shortcutHint?: string;
 };
 Toolbar.Search = function Search({ className, shortcutHint = "⌘K", ...props }: SearchProps) {
     return (
@@ -83,7 +83,6 @@ Toolbar.Search = function Search({ className, shortcutHint = "⌘K", ...props }:
                 {...props}
                 type="search"
                 className={clsx(
-                    // padding izquierdo para la lupa, derecho para el hint
                     "w-full rounded-md border pl-8 pr-16 py-2 text-sm",
                     "focus:outline-none focus:ring-2 focus:ring-[#023f66]"
                 )}

@@ -100,7 +100,7 @@ function SidebarInner() {
                 <Toolbar.Row variant="desktop">
                     <Toolbar.Title>Historial</Toolbar.Title>
                     <Toolbar.Button onClick={createSession} disabled={loadingSessions}>
-                        + Nueva
+                        + Nueva Sesión
                     </Toolbar.Button>
                 </Toolbar.Row>
 

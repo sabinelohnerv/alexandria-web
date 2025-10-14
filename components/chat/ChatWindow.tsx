@@ -1,13 +1,13 @@
 "use client";
 
 import { useSearchStore } from "@/lib/search/store";
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import SystemMessage from "@/components/chat/SystemMessage";
 import UserMessage from "@/components/chat/UserMessage";
+import MessageComposer from "@/components/chat/MessageComposer";
 
 export default function ChatWindow() {
-    const { sessions, currentId, messagesBySession, selectSession, sendAsk } =
-        useSearchStore();
+    const { sessions, currentId, messagesBySession, selectSession, sendAsk } = useSearchStore();
 
     const session = useMemo(
         () => sessions.find((s) => s.id === currentId) || null,
@@ -20,18 +20,45 @@ export default function ChatWindow() {
     );
 
     const [text, setText] = useState("");
-    const viewRef = useRef<HTMLDivElement>(null);
+    const [sending, setSending] = useState(false);
 
-    // Auto-scroll al final cuando cambia la cantidad
+    const viewRef = useRef<HTMLDivElement>(null);
+    const [showScrollBtn, setShowScrollBtn] = useState(false);
+
     useEffect(() => {
         const el = viewRef.current;
         if (el) el.scrollTop = el.scrollHeight;
     }, [messages.length]);
 
-    // Asegurar selección inicial
+    useEffect(() => {
+        const el = viewRef.current;
+        if (!el) return;
+        const onScroll = () => {
+            const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+            setShowScrollBtn(!atBottom);
+        };
+        el.addEventListener("scroll", onScroll);
+        onScroll();
+        return () => el.removeEventListener("scroll", onScroll);
+    }, []);
+
     useEffect(() => {
         if (!session && sessions[0]) void selectSession(sessions[0].id);
     }, [session, sessions, selectSession]);
+
+    const doSend = useCallback(async (content: string) => {
+        if (!content.trim() || !currentId) return;
+        setText("");
+        setSending(true);
+        try {
+            await sendAsk(currentId, content.trim());
+        } catch (e) {
+            console.error(e);
+            alert("Hubo un error enviando la consulta.");
+        } finally {
+            setSending(false);
+        }
+    }, [currentId, sendAsk]);
 
     if (!session) {
         return (
@@ -41,26 +68,12 @@ export default function ChatWindow() {
         );
     }
 
-    async function onSend() {
-        const content = text.trim();
-        if (!content || !currentId) return;
-
-        setText("");
-
-        try {
-            await sendAsk(currentId, content);
-        } catch (e) {
-            console.error(e);
-            alert("Hubo un error enviando la consulta.");
-        }
-    }
-
     return (
         <section className="flex-1 h-full min-h-0 flex flex-col">
             {/* Mensajes */}
             <div
                 ref={viewRef}
-                className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3"
+                className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3 relative"
             >
                 {messages.length === 0 && (
                     <div className="mx-auto mt-10 max-w-xl rounded-2xl border bg-white p-6 text-center">
@@ -73,7 +86,6 @@ export default function ChatWindow() {
 
                 {messages.map((m) => {
                     if (m.role === "assistant" || m.role === "system") {
-                        // Los mensajes del asistente/sistema vienen del backend -> id > 0
                         return (
                             <div key={m.id} className="flex justify-start">
                                 <SystemMessage
@@ -84,36 +96,35 @@ export default function ChatWindow() {
                             </div>
                         );
                     }
-
-                    // Usuario
                     return <UserMessage key={m.id} content={m.content} />;
                 })}
+
+                {/* Botón scroll to bottom */}
+                {showScrollBtn && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const el = viewRef.current;
+                            if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+                        }}
+                        className="absolute right-4 bottom-4 rounded-full border bg-white/90 backdrop-blur px-3 py-2 text-xs shadow hover:bg-white"
+                        title="Bajar al final"
+                    >
+                        ↓ Final
+                    </button>
+                )}
             </div>
 
             {/* Composer */}
             <div className="border-t bg-white p-3">
-                <div className="mx-auto max-w-3xl flex gap-2">
-                    <input
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && onSend()}
-                        placeholder="Escribe un mensaje..."
-                        className="flex-1 rounded-xl border bg-white p-3 text-sm outline-none
-              focus-visible:ring-2 focus-visible:ring-[--brand] focus-visible:ring-offset-2"
-                    />
-                    <button
-                        onClick={onSend}
-                        className="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow disabled:opacity-60
-              hover:-translate-y-[1px] transition-transform"
-                        style={{
-                            background:
-                                "linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 100%)",
-                        }}
-                        disabled={!text.trim()}
-                    >
-                        Enviar
-                    </button>
-                </div>
+                <MessageComposer
+                    value={text}
+                    onChange={setText}
+                    onSend={doSend}
+                    loading={sending}
+                    placeholder="Escribe un mensaje…"
+                    className="max-w-3xl"
+                />
             </div>
         </section>
     );
