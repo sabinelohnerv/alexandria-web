@@ -87,7 +87,6 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
         setViewerOpen(false);
     }, []);
 
-    // NEW: navegación con teclado
     React.useEffect(() => {
         if (!open) return;
         function onKeyDown(e: KeyboardEvent) {
@@ -95,7 +94,6 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
 
             const idx = activeHitId == null ? -1 : hits.findIndex(h => h.id === activeHitId);
 
-            // navegación lista
             if (e.key === "ArrowDown") {
                 e.preventDefault();
                 const next = hits[Math.min((idx === -1 ? 0 : idx + 1), hits.length - 1)];
@@ -111,7 +109,6 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                 e.preventDefault();
                 openForHit(hits[idx]);
             }
-            // siguiente/anterior en visor
             if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && viewerOpen) {
                 e.preventDefault();
                 let nextIdx = idx;
@@ -120,7 +117,6 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                 const target = hits[nextIdx];
                 if (target) openForHit(target);
             }
-            // cerrar visor
             if (e.key === "Escape" && viewerOpen) {
                 e.preventDefault();
                 handleCloseViewer();
@@ -130,7 +126,6 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [open, hits, activeHitId, viewerOpen, openForHit, handleCloseViewer]);
 
-    // NEW: al cambiar activo, hacer scroll al tile
     React.useEffect(() => {
         if (activeHitId == null) return;
         const el = document.querySelector<HTMLElement>(`[data-hit-id="${activeHitId}"]`);
