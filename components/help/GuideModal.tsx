@@ -120,7 +120,7 @@ export default function GuideModal({ open, onClose }: Props) {
                                     key={t}
                                     className="rounded-full border px-3 py-1 text-xs hover:bg-slate-50"
                                     onClick={() => {
-                                        // dispara un evento para autocompletar el composer (si lo implementas)
+                                        // dispara un evento para autocompletar el composer
                                         window.dispatchEvent(new CustomEvent("composer-insert", { detail: t }));
                                         onClose();
                                     }}
