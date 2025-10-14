@@ -5,13 +5,28 @@ import { useUIStore } from "@/lib/ui/store";
 import { useSearchStore } from "@/lib/search/store";
 import SessionTile, { SessionPreview } from "@/components/chat/SessionTile";
 import Toolbar from "@/components/layout/Toolbar";
+import GuideModal from "@/components/help/GuideModal";
 
-/* ── Utils de agrupación por fecha (igual que antes) ───────────────────── */
-function isSameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
-function isYesterday(d: Date, now = new Date()) { const y = new Date(now); y.setDate(now.getDate() - 1); return isSameDay(d, y); }
-function isThisWeek(d: Date, now = new Date()) { const day = now.getDay() || 7; const monday = new Date(now); monday.setHours(0, 0, 0, 0); monday.setDate(now.getDate() - (day - 1)); return d >= monday && d <= now && !isSameDay(d, now) && !isYesterday(d, now); }
+/* ── Utils agrupación por fecha ───────────────────────────────────────── */
+function isSameDay(a: Date, b: Date) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+function isYesterday(d: Date, now = new Date()) {
+    const y = new Date(now); y.setDate(now.getDate() - 1); return isSameDay(d, y);
+}
+function isThisWeek(d: Date, now = new Date()) {
+    const day = now.getDay() || 7; const monday = new Date(now);
+    monday.setHours(0, 0, 0, 0); monday.setDate(now.getDate() - (day - 1));
+    return d >= monday && d <= now && !isSameDay(d, now) && !isYesterday(d, now);
+}
 type SectionKey = "today" | "yesterday" | "week" | "older";
-function sectionOf(dt: Date): SectionKey { const now = new Date(); if (isSameDay(dt, now)) return "today"; if (isYesterday(dt, now)) return "yesterday"; if (isThisWeek(dt, now)) return "week"; return "older"; }
+function sectionOf(dt: Date): SectionKey {
+    const now = new Date();
+    if (isSameDay(dt, now)) return "today";
+    if (isYesterday(dt, now)) return "yesterday";
+    if (isThisWeek(dt, now)) return "week";
+    return "older";
+}
 function groupByDate(sessions: SessionPreview[]) {
     const buckets: Record<SectionKey, SessionPreview[]> = { today: [], yesterday: [], week: [], older: [] };
     for (const s of sessions) buckets[sectionOf(new Date(s.updatedAt))].push(s);
@@ -50,7 +65,7 @@ function Skeleton() {
     );
 }
 
-/* ── SidebarInner ──────────────────────────────────────────────────────── */
+/* ── SidebarInner ─────────────────────────────────────────────────────── */
 function SidebarInner() {
     const {
         sessions, currentId, selectSession, renameSession, deleteSession,
@@ -66,21 +81,6 @@ function SidebarInner() {
 
     const grouped = useMemo(() => groupByDate(filtered), [filtered]);
 
-    // teclado
-    const currentIndex = useMemo(() => sessions.findIndex(s => s.id === currentId), [sessions, currentId]);
-    const onKeyDownList = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (!sessions.length) return;
-        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-            e.preventDefault();
-            const dir = e.key === "ArrowDown" ? 1 : -1;
-            const next = Math.max(0, Math.min(sessions.length - 1, (currentIndex < 0 ? 0 : currentIndex) + dir));
-            const id = sessions[next]?.id;
-            if (id != null) void selectSession(id);
-        } else if (e.key === "Enter") {
-            if (currentId != null) void selectSession(currentId);
-        }
-    }, [sessions, currentId, currentIndex, selectSession]);
-
     useEffect(() => { (async () => { await hydrateSessions(); ensureDraft(); })(); }, [hydrateSessions, ensureDraft]);
 
     const createSession = useCallback(() => {
@@ -88,13 +88,14 @@ function SidebarInner() {
         void selectSession(id);
     }, [startDraftSession, selectSession]);
 
-    const openGuide = useCallback(() => {
-        // Hookea tu modal/panel de guía aquí
-        window.dispatchEvent(new CustomEvent("open-user-guide"));
-    }, []);
+    /* ── Guía de uso: estado + handlers ── */
+    const [guideOpen, setGuideOpen] = useState(false);
+    const openGuide = useCallback(() => setGuideOpen(true), []);
+    const closeGuide = useCallback(() => setGuideOpen(false), []);
 
     return (
         <div className="flex h-full min-h-0 flex-col">
+            {/* Header / Toolbar */}
             <Toolbar>
                 {/* Fila 1: Historial + Nueva */}
                 <Toolbar.Row variant="desktop">
@@ -104,7 +105,7 @@ function SidebarInner() {
                     </Toolbar.Button>
                 </Toolbar.Row>
 
-                {/* Fila 2: Acciones */}
+                {/* Fila 2: Acciones (solo buscador ahora) */}
                 <Toolbar.Row variant="desktop" className="gap-2">
                     <Toolbar.Search
                         placeholder="Buscar sesión…"
@@ -114,17 +115,12 @@ function SidebarInner() {
                         className="flex-1"
                         aria-label="Buscar en historial"
                     />
-                    <Toolbar.Button variant="secondary" onClick={openGuide} title="Abrir guía de usuario">
-                        Guía
-                    </Toolbar.Button>
                 </Toolbar.Row>
             </Toolbar>
 
             {/* Lista de sesiones */}
             <nav
                 className="flex-1 min-h-0 overflow-y-auto bg-white"
-                onKeyDown={onKeyDownList}
-                tabIndex={0}
                 aria-label="Historial de sesiones"
             >
                 {loadingSessions ? (
@@ -208,11 +204,35 @@ function SidebarInner() {
                     </>
                 )}
             </nav>
+
+            {/* Footer fijo */}
+            <footer className="bg-white px-3 py-2">
+
+                {/* botón Guía de uso */}
+                <button
+                    type="button"
+                    onClick={openGuide}
+                    className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-slate-50"
+                    title="Abrir guía de uso"
+                >
+                    {/* Ícono (libro/ayuda) */}
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-600" aria-hidden="true">
+                        <path
+                            fill="currentColor"
+                            d="M4 6.5A2.5 2.5 0 0 1 6.5 4H20a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6.5A1.5 1.5 0 0 0 5 20.5V6.5ZM6.5 6A.5.5 0 0 0 6 6.5v12A3.5 3.5 0 0 1 9.5 15H20V6H6.5Z"
+                        />
+                    </svg>
+                    Guía de uso
+                </button>
+            </footer>
+
+            {/* Modal de guía */}
+            <GuideModal open={guideOpen} onClose={closeGuide} />
         </div>
     );
 }
 
-/* ── Wrapper responsive ────────────────────────────────────────────────── */
+/* ── Wrapper responsive ───────────────────────────────────────────────── */
 export default function Sidebar() {
     const { sidebarOpen } = useUIStore();
     return (
@@ -225,7 +245,6 @@ export default function Sidebar() {
             {/* Mobile */}
             {sidebarOpen && (
                 <div className="fixed top-14 bottom-0 left-0 z-50 w-80 md:hidden bg-white border-r flex flex-col min-h-0">
-                    {/* Puedes usar variant="mobile" si quieres compactar paddings en móvil */}
                     <SidebarInner />
                 </div>
             )}
