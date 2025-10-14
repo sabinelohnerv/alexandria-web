@@ -18,11 +18,10 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
     const [error, setError] = React.useState<string | null>(null);
     const [hits, setHits] = React.useState<SearchHitDTO[]>([]);
 
-    // NEW: estado de selección/visor
     const [activeHitId, setActiveHitId] = React.useState<number | null>(null);
     const [viewerUrl, setViewerUrl] = React.useState<string | null>(null);
     const [viewerHit, setViewerHit] = React.useState<SearchHitDTO | null>(null);
-    const [viewerOpen, setViewerOpen] = React.useState<boolean>(false); // toggle mostrar/ocultar visor
+    const [viewerOpen, setViewerOpen] = React.useState<boolean>(false); 
 
     // Carga cuando se abre
     React.useEffect(() => {

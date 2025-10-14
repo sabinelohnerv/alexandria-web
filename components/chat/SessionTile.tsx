@@ -8,7 +8,7 @@ import KebabMenu from "@/components/ui/KebabMenu";
 export type SessionPreview = {
     id: number;
     title: string;
-    updatedAt: string;
+    updatedAt: string; // ISO
     isDeleted?: boolean;
 };
 
@@ -20,12 +20,43 @@ type Props = {
     onDelete: (id: number) => void | Promise<void>;
 };
 
-function fmtDate(iso: string) {
+function fmtAbsolute(iso: string) {
     try {
-        return new Date(iso).toLocaleDateString();
+        const d = new Date(iso);
+        return d.toLocaleString();
     } catch {
         return iso;
     }
+}
+
+// “hace 2 h / 3 d / 5 min”
+function fmtRelative(iso: string) {
+    try {
+        const d = new Date(iso).getTime();
+        const now = Date.now();
+        const diff = Math.max(0, now - d);
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 1) return "ahora";
+        if (minutes < 60) return `hace ${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `hace ${hours} h`;
+        const days = Math.floor(hours / 24);
+        return `hace ${days} d`;
+    } catch {
+        return iso;
+    }
+}
+
+function Dot({ active }: { active?: boolean }) {
+    return (
+        <span
+            className={[
+                "inline-block h-2 w-2 rounded-full",
+                active ? "bg-[#023f66]" : "bg-slate-300 group-hover:bg-slate-400",
+            ].join(" ")}
+            aria-hidden="true"
+        />
+    );
 }
 
 function SessionTileBase({ session, active, onSelect, onRename, onDelete }: Props) {
@@ -70,38 +101,44 @@ function SessionTileBase({ session, active, onSelect, onRename, onDelete }: Prop
                 tabIndex={0}
                 onClick={handleSelect}
                 onKeyDown={handleKeyDown}
-                title={fmtDate(session.updatedAt)}
+                title={fmtAbsolute(session.updatedAt)}
                 className={[
-                    "group relative grid h-16 grid-cols-[1fr_auto] items-center px-3 rounded-none transition-colors",
+                    "group relative grid h-16 grid-cols-[1fr_auto] items-center px-3 transition-colors",
                     active
-                        ? "bg-[#023f661F] ring-2 ring-inset ring-[#023f66] after:absolute after:inset-y-1.5 after:left-0 after:w-1.5 after:bg-[#023f66]"
+                        ? "bg-[#023f6614] ring-2 ring-inset ring-[#023f66]"
                         : "hover:bg-[#023f660D]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#023f66]",
                 ].join(" ")}
             >
                 {/* Columna izquierda */}
-                <div className="min-w-0">
-                    <div className="truncate">{session.title || `(sesión #${session.id})`}</div>
-                    <div className="text-[11px] text-slate-500">{fmtDate(session.updatedAt)}</div>
+                <div className="min-w-0 pr-2">
+                    <div className="flex items-center gap-2">
+                        <Dot active={active} />
+                        <div className="truncate text-[15px] leading-tight">
+                            {session.title || `(sesión #${session.id})`}
+                        </div>
+                    </div>
+                    <div
+                        className="text-[11px] text-slate-500 mt-1"
+                        aria-label={`Actualizada ${fmtRelative(session.updatedAt)}`}
+                    >
+                        {fmtRelative(session.updatedAt)}
+                    </div>
                 </div>
 
-                {/* Botón de menú (tres puntitos) */}
+                {/* Kebab */}
                 <div
-                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
-                    onClick={(e) => e.stopPropagation()} // no seleccionar tile al abrir menú
+                    className={[
+                        "transition-opacity",
+                        active ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                    ].join(" ")}
+                    onClick={(e) => e.stopPropagation()}
                 >
                     <KebabMenu
                         title="Opciones"
                         items={[
-                            {
-                                label: "Renombrar",
-                                onClick: () => setRenameOpen(true),
-                            },
-                            {
-                                label: "Eliminar",
-                                danger: true,
-                                onClick: () => setDeleteOpen(true),
-                            },
+                            { label: "Renombrar", onClick: () => setRenameOpen(true) },
+                            { label: "Eliminar", danger: true, onClick: () => setDeleteOpen(true) },
                         ]}
                     />
                 </div>
@@ -128,8 +165,7 @@ function SessionTileBase({ session, active, onSelect, onRename, onDelete }: Prop
                 description={
                     <p>
                         ¿Seguro que deseas eliminar{" "}
-                        <strong>{session.title || `sesión #${session.id}`}</strong>? Esta acción no
-                        se puede deshacer.
+                        <strong>{session.title || `sesión #${session.id}`}</strong>? Esta acción no se puede deshacer.
                     </p>
                 }
                 confirmLabel="Eliminar"
