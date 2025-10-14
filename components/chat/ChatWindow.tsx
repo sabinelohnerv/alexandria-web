@@ -5,6 +5,7 @@ import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import SystemMessage from "@/components/chat/SystemMessage";
 import UserMessage from "@/components/chat/UserMessage";
 import MessageComposer from "@/components/chat/MessageComposer";
+import AssistantThinking from "@/components/chat/AssistantThinking";
 
 export default function ChatWindow() {
     const { sessions, currentId, messagesBySession, selectSession, sendAsk } = useSearchStore();
@@ -25,10 +26,11 @@ export default function ChatWindow() {
     const viewRef = useRef<HTMLDivElement>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
 
+    // Auto-scroll al final cuando cambia el conteo de mensajes o el estado "sending"
     useEffect(() => {
         const el = viewRef.current;
         if (el) el.scrollTop = el.scrollHeight;
-    }, [messages.length]);
+    }, [messages.length, sending]);
 
     useEffect(() => {
         const el = viewRef.current;
@@ -75,7 +77,7 @@ export default function ChatWindow() {
                 ref={viewRef}
                 className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3 relative"
             >
-                {messages.length === 0 && (
+                {messages.length === 0 && !sending && (
                     <div className="mx-auto mt-10 max-w-xl rounded-2xl border bg-white p-6 text-center">
                         <h3 className="text-lg font-semibold">¡Bienvenido a Alexandria!</h3>
                         <p className="text-sm text-slate-600 mt-1">
@@ -99,7 +101,14 @@ export default function ChatWindow() {
                     return <UserMessage key={m.id} content={m.content} />;
                 })}
 
-                {/* Botón scroll to bottom */}
+                {/* Placeholder del asistente mientras se procesa */}
+                {sending && (
+                    <div className="flex justify-start">
+                        <AssistantThinking />
+                    </div>
+                )}
+
+                {/* Botón: bajar al final */}
                 {showScrollBtn && (
                     <button
                         type="button"
