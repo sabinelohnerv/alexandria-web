@@ -22,6 +22,38 @@ export function normalize(md: string) {
         .replace(/[\u3011\uFF3D]/g, "]");
 }
 
+/** Corrige refs mal formadas dentro de texto (respeta bloques ``` ```):
+ *  - [doc_id:73:1171]      -> [73:1171]
+ *  - [document:73:1171]    -> [73:1171]
+ *  - [docid:73:1171]       -> [73:1171]
+ *  - [73:73:1171]          -> [73:1171]   (defensa por si se repite el doc numérico)
+ *  - espacios/UNICODE      -> limpiados
+ */
+export function fixMalformedRefsFenceAware(md: string) {
+  const FENCE = "```";
+  const parts = md.split(FENCE);
+
+  const fix = (s: string) => s
+    // 1) Normalizar unicode/espacios y corchetes "raros"
+    .replace(/[\u00A0\u2009\u200A\u200B\u202F]/g, " ")
+    .replace(/\uFF1A/g, ":")
+    .replace(/[\u3010\uFF3B]/g, "[")
+    .replace(/[\u3011\uFF3D]/g, "]")
+    // 2) [doc_id:73:1171] / [document:73:1171] / [docid:73:1171] -> [73:1171]
+    .replace(
+      /\[\s*(?:doc[_\s-]*id|doc(?:ument)?|document)\s*:\s*(\d+)\s*:\s*(\d+)\s*]/gi,
+      (_m, a, b) => `[${a}:${b}]`
+    )
+    // 3) Defensa: si alguien duplica el doc numérico [73:73:1171] -> [73:1171]
+    .replace(/\[\s*(\d+)\s*:\s*\1\s*:\s*(\d+)\s*]/g, (_m, a, b) => `[${a}:${b}]`)
+    // 4) Compactar espacios dentro de la ref
+    .replace(/\[\s*(\d+)\s*:\s*(\d+)\s*]/g, (_m, a, b) => `[${a}:${b}]`);
+
+  for (let i = 0; i < parts.length; i += 2) parts[i] = fix(parts[i]);
+  return parts.join(FENCE);
+}
+
+
 export function highlightRefsFenceAware(md: string) {
     const toInline = (s: string) =>
         s

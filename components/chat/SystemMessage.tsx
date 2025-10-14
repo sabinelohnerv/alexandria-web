@@ -18,6 +18,7 @@ import {
     SOURCES_SLOT,
     linkifyRefsFenceAware,
     type RefResolveResult,
+    fixMalformedRefsFenceAware,
 } from "./system/markdown";
 
 import {
@@ -40,9 +41,11 @@ export default function SystemMessage({ content, title, messageId, sessionId }: 
         typeof messageId === "number" && messageId > 0 &&
         typeof sessionId === "number" && sessionId > 0;
 
-    // 1) Normaliza y deja un SLOT donde estaba “Fuentes/Referencias/Bibliografía…”
+    // 1) Normaliza -> corrige refs mal formadas -> coloca SLOT de fuentes
     const normalized = normalize(content);
-    const withSlot = replaceSourcesSectionFenceAware(normalized, SOURCES_SLOT);
+    const refsFixed = fixMalformedRefsFenceAware(normalized);           // <-- nuevo
+    const withSlot = replaceSourcesSectionFenceAware(refsFixed, SOURCES_SLOT);
+
 
     // 2) Estado: markdown final
     const [finalMd, setFinalMd] = React.useState<string>(withSlot);
@@ -97,9 +100,11 @@ export default function SystemMessage({ content, title, messageId, sessionId }: 
 
                 if (!cancelled) {
                     setFinalMd((prev) => {
-                        // c) linkificar refs en el contenido actual
-                        const linked = linkifyRefsFenceAware(prev, resolver);
-                        // d) inyectar bloque de fuentes en el SLOT (si existe), o anexar al final
+                        // corrige refs por si el estado previo trae texto no arreglado
+                        const fixed = fixMalformedRefsFenceAware(prev);
+                        // linkificar refs [doc:chunk] / [doc:hit]
+                        const linked = linkifyRefsFenceAware(fixed, resolver);
+                        // inyectar bloque de fuentes
                         if (linked.includes(SOURCES_SLOT)) return linked.replace(SOURCES_SLOT, block);
                         return linked + (block ? `\n\n${block}` : "");
                     });
