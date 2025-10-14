@@ -6,7 +6,12 @@ import type { Components } from "react-markdown";
 import Chip from "@/components/ui/Chip";
 import SourceChipLink from "./SourceChipLink";
 
-/* ── Normalización & refs ─────────────────────────────────────────────── */
+/* ========= Tipos para ref-chips ========= */
+export type RefChip = { label: string; href: string };
+export type RefChipMap = Record<string, RefChip>;
+export const RefChipContext = React.createContext<RefChipMap | null>(null);
+
+/* ========= Normalización & refs ========= */
 
 export function normalize(md: string) {
     return md
@@ -40,7 +45,7 @@ export const cleanRef = (str: string) =>
 
 export const isRef = (str: string) => /^\[\d+:\d+]$/.test(cleanRef(str));
 
-/* ── Quitar/Reemplazar sección de fuentes (fence-aware) ─────────────────── */
+/* ========= Eliminar/Reemplazar sección Fuentes (fence-aware) ========= */
 
 function _replaceSourcesSection(raw: string, replacement = ""): string {
     const KW = String.raw`(?:fuentes(?:\s+citadas)?|referencias|bibliograf[ií]a)`;
@@ -87,7 +92,6 @@ function _replaceSourcesSection(raw: string, replacement = ""): string {
     return s;
 }
 
-/** Reemplaza la sección de fuentes fuera de fences ``` */
 export function replaceSourcesSectionFenceAware(md: string, replacement = ""): string {
     const FENCE = "```";
     const parts = md.split(FENCE);
@@ -99,12 +103,44 @@ export function replaceSourcesSectionFenceAware(md: string, replacement = ""): s
 
 export const SOURCES_SLOT = "...";
 
-/** Atajo: elimina la sección de fuentes (sin reemplazo) */
 export function stripSourcesSectionFenceAware(md: string): string {
     return replaceSourcesSectionFenceAware(md, "");
 }
 
-/* ── Helpers internos ───────────────────── */
+/* ==== Linkificar refs [doc:hit] / [doc:chunk] (fence-aware) ==== */
+
+export type RefResolveResult = { label: string; href: string } | null;
+export type RefResolver = (docId: number, secondId: number) => RefResolveResult;
+
+function escapeBacktickedLabel(s: string) {
+    // Escapa solo lo necesario para usarlo dentro de `...`
+    return String(s).replace(/`/g, "\\`").trim();
+}
+
+/**
+ * Reemplaza referencias como [123:456] por enlaces markdown:
+ *    [`TSJ Nº 89293`](/api/backend/...)
+ * Respeta los bloques fenced ``` ```
+ */
+export function linkifyRefsFenceAware(md: string, resolve: RefResolver): string {
+    const FENCE = "```";
+    const parts = md.split(FENCE);
+    for (let i = 0; i < parts.length; i += 2) {
+        parts[i] = parts[i].replace(/\[\s*(\d+)\s*:\s*(\d+)\s*]/g, (_m, a, b) => {
+            const docId = Number(a);
+            const second = Number(b);
+            const r = resolve(docId, second);
+            if (!r) return _m;
+            const label = escapeBacktickedLabel(r.label);
+            const href = r.href;
+            return `[\\\`${label}\\\`](${href})`;
+        });
+    }
+    return parts.join(FENCE);
+}
+
+
+/* ========= Helpers ========= */
 
 function toText(node: any): string {
     if (node == null) return "";
@@ -114,13 +150,53 @@ function toText(node: any): string {
     return "";
 }
 
-/* ── Renderers markdown ───────────────────── */
+/* ========= Tipos de renderer ========= */
 
 type CodeRendererProps = {
     inline?: boolean;
     className?: string;
     children?: React.ReactNode;
 } & React.HTMLAttributes<HTMLElement>;
+
+/* ========= Componente renderer para <code> (para poder usar hooks) ========= */
+
+function InlineCodeRenderer(props: CodeRendererProps) {
+    const { inline, className, children } = props;
+    const refsMap = React.useContext(RefChipContext);
+
+    let raw = "";
+    if (Array.isArray(children))
+        raw = children.map((c) => (typeof c === "string" ? c : "")).join("");
+    else raw = String(children ?? "");
+
+    if (inline) {
+        // 1) Si es referencia tipo [doc:hit] y hay match, renderiza chip de fuente
+        if (isRef(raw)) {
+            const key = cleanRef(raw); // "[doc:hit]"
+            const match = refsMap?.[key];
+            if (match) {
+                return <SourceChipLink href={match.href} label={match.label} />;
+            }
+            return (
+                <Chip title="Referencia" className="inline-flex align-middle">
+                    {key}
+                </Chip>
+            );
+        }
+    }
+    return (
+        <code
+            className={[
+                "rounded border bg-slate-50 px-1 py-[1px] text-[12px]",
+                className || "",
+            ].join(" ")}
+        >
+            {raw.trim()}
+        </code>
+    );
+}
+
+/* ========= Renderers markdown ========= */
 
 export function makeMarkdownComponents(): Partial<Components> {
     return {
@@ -160,38 +236,12 @@ export function makeMarkdownComponents(): Partial<Components> {
             );
         },
 
-        code: (props) => {
-            const { inline, className, children } = props as CodeRendererProps;
-            let raw = "";
-            if (Array.isArray(children))
-                raw = children.map((c) => (typeof c === "string" ? c : "")).join("");
-            else raw = String(children ?? "");
-
-            if (inline) {
-                if (isRef(raw)) {
-                    return (
-                        <Chip title="Referencia" className="inline-flex align-middle">
-                            {cleanRef(raw)}
-                        </Chip>
-                    );
-                }
-            }
-
-            return (
-                <code
-                    className={[
-                        "rounded border bg-slate-50 px-1 py-[1px] text-[12px]",
-                        className || "",
-                    ].join(" ")}
-                >
-                    {raw.trim()}
-                </code>
-            );
-        },
+        code: (props) => <InlineCodeRenderer {...(props as CodeRendererProps)} />,
 
         ul: (p) => <ul className="list-disc pl-5 space-y-1" {...p} />,
         ol: (p) => <ol className="list-decimal pl-5 space-y-1" {...p} />,
 
+        // Links: si el link tiene como único hijo un <code>, lo convertimos a chip clickeable
         a: ({ href, children, ...props }) => {
             const kids = React.Children.toArray(children);
 
@@ -202,12 +252,9 @@ export function makeMarkdownComponents(): Partial<Components> {
                     break;
                 }
             }
-
             if (!codeChild && kids.length === 1) {
                 const text = toText(kids[0]);
-                if (text) {
-                    codeChild = { props: { children: text } } as any;
-                }
+                if (text) codeChild = { props: { children: text } } as any;
             }
 
             if (codeChild && typeof href === "string") {
@@ -215,7 +262,6 @@ export function makeMarkdownComponents(): Partial<Components> {
                 return <SourceChipLink href={href} label={label} />;
             }
 
-            // Enlace normal
             return (
                 <a
                     href={href}
