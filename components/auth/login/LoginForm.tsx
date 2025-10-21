@@ -76,7 +76,7 @@ export default function LoginForm({
         <>
             {serverError && (
                 <div className="mt-4">
-                    <Alert kind="error" title="No pudimos iniciar sesión" message={serverError} />
+                    <Alert kind="error" title="No pudimos iniciar sesión" message="No se encontraron cuentas activas con las credenciales." />
                 </div>
             )}
 
