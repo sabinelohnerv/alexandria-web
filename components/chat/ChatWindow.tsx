@@ -9,7 +9,7 @@ import AssistantThinking from "@/components/chat/AssistantThinking";
 import Image from "next/image";
 
 export default function ChatWindow() {
-    const { sessions, currentId, messagesBySession, selectSession, sendAsk } = useSearchStore();
+    const { sessions, currentId, messagesBySession, selectSession, sendAsk, loadingSessions } = useSearchStore();
 
     const session = useMemo(
         () => sessions.find((s) => s.id === currentId) || null,
@@ -65,8 +65,29 @@ export default function ChatWindow() {
 
     if (!session) {
         return (
-            <section className="flex-1 grid place-items-center">
-                No hay sesión seleccionada.
+            <section className="flex-1 grid place-items-center p-6">
+                <div className="text-center animate-fadeIn">
+                    {loadingSessions ? (
+                        <>
+                            <div className="w-12 h-12 mx-auto mb-4">
+                                <svg className="animate-spin text-[var(--brand)]" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                            </div>
+                            <p className="text-slate-600 font-medium">Cargando sesiones...</p>
+                            <p className="text-sm text-slate-500 mt-1">Por favor espera un momento</p>
+                        </>
+                    ) : (
+                        <>
+                            <svg className="w-20 h-20 mx-auto text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                            </svg>
+                            <p className="text-slate-600 font-medium">No hay sesión seleccionada</p>
+                            <p className="text-sm text-slate-500 mt-1">Selecciona o crea una sesión para comenzar</p>
+                        </>
+                    )}
+                </div>
             </section>
         );
     }

@@ -42,10 +42,12 @@ export default function SystemMessage({ content, title, messageId, sessionId }: 
         typeof sessionId === "number" && sessionId > 0;
 
     // 1) Normaliza -> corrige refs mal formadas -> coloca SLOT de fuentes
-    const normalized = normalize(content);
-    const refsFixed = fixMalformedRefsFenceAware(normalized);           // <-- nuevo
-    const withSlot = replaceSourcesSectionFenceAware(refsFixed, SOURCES_SLOT);
-
+    // Usar useMemo para evitar recalcular en cada render
+    const withSlot = React.useMemo(() => {
+        const normalized = normalize(content);
+        const refsFixed = fixMalformedRefsFenceAware(normalized);
+        return replaceSourcesSectionFenceAware(refsFixed, SOURCES_SLOT);
+    }, [content]);
 
     // 2) Estado: markdown final
     const [finalMd, setFinalMd] = React.useState<string>(withSlot);
@@ -112,7 +114,7 @@ export default function SystemMessage({ content, title, messageId, sessionId }: 
 
         run();
         return () => { cancelled = true; };
-    }, [canFeedback, sessionId, messageId, withSlot]);
+    }, [canFeedback, sessionId, messageId]); // Removido withSlot de las dependencias
 
     // 4) Post-proceso: refs fence-aware (queda por si llegan refs no linkificadas)
     const enhanced = highlightRefsFenceAware(finalMd);

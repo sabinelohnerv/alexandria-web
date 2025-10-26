@@ -2,6 +2,11 @@
 
 const BACKEND_PREFIX = "/api/backend/";
 
+// Cache para evitar llamadas duplicadas
+const hitsCache = new Map<string, { data: SearchHitDTO[]; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const pendingRequests = new Map<string, Promise<SearchHitDTO[]>>();
+
 function buildUrl(path: string) {
     const clean = path.replace(/^\/+/, "");
     return `${BACKEND_PREFIX}${clean}`;
@@ -87,19 +92,48 @@ export async function fetchMessageHits(
     if (opts?.includeSnippet) qs.set("include_snippet", "1");
     if (opts?.limit) qs.set("limit", String(opts.limit));
 
+    const cacheKey = `${sessionId}:${messageId}:${qs.toString()}`;
+    
+    // Verificar caché
+    const cached = hitsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.data;
+    }
+    
+    // Si ya hay una petición en curso, retornar esa promesa
+    const pending = pendingRequests.get(cacheKey);
+    if (pending) {
+        return pending;
+    }
+
     const url = buildUrl(
         `search/sessions/${sessionId}/messages/${messageId}/hits/${qs.toString() ? `?${qs}` : ""}`
     );
 
-    const res = await fetch(url, { credentials: "include" });
-    if (!res.ok) {
-        const msg = await res.text().catch(() => res.statusText);
-        throw new Error(`HTTP ${res.status}: ${msg}`);
-    }
-    const data: HitsResponse = await res.json();
-    return isPaginated<SearchHitDTO>(data) ? data.results : data;
+    // Crear la promesa y guardarla
+    const fetchPromise = (async () => {
+        try {
+            const res = await fetch(url, { credentials: "include" });
+            if (!res.ok) {
+                const msg = await res.text().catch(() => res.statusText);
+                throw new Error(`HTTP ${res.status}: ${msg}`);
+            }
+            const data: HitsResponse = await res.json();
+            const results = isPaginated<SearchHitDTO>(data) ? data.results : data;
+            
+            // Guardar en caché
+            hitsCache.set(cacheKey, { data: results, timestamp: Date.now() });
+            
+            return results;
+        } finally {
+            // Limpiar la petición pendiente
+            pendingRequests.delete(cacheKey);
+        }
+    })();
+    
+    pendingRequests.set(cacheKey, fetchPromise);
+    return fetchPromise;
 }
-
 
 export function getHitFileUrl(sessionId: number, messageId: number, hitId: number) {
     const clean = `search/sessions/${sessionId}/messages/${messageId}/hits/${hitId}/file/`;
@@ -109,4 +143,20 @@ export function getHitFileUrl(sessionId: number, messageId: number, hitId: numbe
 export function openHitFileNewTab(sessionId: number, messageId: number, hitId: number) {
     const url = getHitFileUrl(sessionId, messageId, hitId);
     window.open(url, "_blank", "noopener,noreferrer");
+}
+
+// Utilidades para gestionar el caché
+export function clearHitsCache() {
+    hitsCache.clear();
+    pendingRequests.clear();
+}
+
+export function clearMessageHitsCache(sessionId: number, messageId: number) {
+    const keysToDelete: string[] = [];
+    for (const key of hitsCache.keys()) {
+        if (key.startsWith(`${sessionId}:${messageId}:`)) {
+            keysToDelete.push(key);
+        }
+    }
+    keysToDelete.forEach(key => hitsCache.delete(key));
 }

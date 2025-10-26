@@ -139,7 +139,7 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
             <div className="absolute inset-0 bg-black/30" onClick={onClose} />
 
             {/* modal */}
-            <div className="relative z-10 w-full max-w-6xl rounded-2xl bg-white shadow-xl border">
+            <div className="relative z-10 w-full max-w-6xl rounded-2xl bg-white shadow-xl border animate-scaleIn">
                 {/* header */}
                 <div className="flex items-center justify-between px-5 py-3 border-b">
                     <div className="flex items-center gap-3 min-w-0">
@@ -178,7 +178,19 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                             No se puede cargar: falta <code>sessionId</code> o <code>messageId</code>.
                         </div>
                     ) : loading ? (
-                        <div className="text-sm text-slate-600">Cargando hits…</div>
+                        <div className="space-y-3">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="animate-pulse border rounded-lg p-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-4 bg-slate-200 rounded w-3/4" />
+                                            <div className="h-3 bg-slate-200 rounded w-1/2" />
+                                            <div className="h-3 bg-slate-200 rounded w-full" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     ) : error ? (
                         <div className="text-sm text-red-600">{error}</div>
                     ) : hits.length === 0 ? (
@@ -188,7 +200,7 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                             {/* Lista de hits */}
                             <div className={viewerUrl && viewerOpen ? "lg:col-span-5" : "lg:col-span-12"}>
                                 <ul className="space-y-3 max-h-[70vh] overflow-y-auto pr-1" role="listbox" aria-label="Resultados">
-                                    {hits.map((h) => (
+                                    {hits.map((h, idx) => (
                                         <HitTile
                                             key={h.id}
                                             hit={h}
