@@ -103,9 +103,7 @@ export default function ChatWindow() {
 
                 {/* Placeholder del asistente mientras se procesa */}
                 {sending && (
-                    <div className="flex justify-start">
-                        <AssistantThinking />
-                    </div>
+                    <AssistantThinking />
                 )}
 
                 {/* Botón: bajar al final */}

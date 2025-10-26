@@ -99,31 +99,26 @@ export default function MessageComposer({
 
             const mode = detail?.mode ?? "insert";
 
-            // Calcula nueva cadena según modo y selección
             const current = value ?? "";
             let next = current;
 
-            // Si el textarea tiene foco, usamos su selección para "insert" o "replace"
             const hasFocus = document.activeElement === el && !!el;
             const selStart = hasFocus ? el!.selectionStart ?? current.length : current.length;
             const selEnd = hasFocus ? el!.selectionEnd ?? current.length : current.length;
 
             if (mode === "replace") {
-                // Reemplaza selección; si no hay foco/selección, reemplaza todo
                 if (hasFocus && selStart !== selEnd) {
                     next = current.slice(0, selStart) + text + current.slice(selEnd);
                 } else {
                     next = text;
                 }
             } else if (mode === "prepend") {
-                // Añade al inicio con espacio/salto si hace falta
                 const sep = current.startsWith("\n") || text.endsWith("\n") ? "" : (current ? "\n" : "");
                 next = text + (sep ? sep : (text.endsWith(" ") || current.startsWith(" ") ? "" : " ")) + current;
             } else if (mode === "append") {
                 const sep = current.endsWith("\n") || text.startsWith("\n") ? "" : (current ? "\n" : "");
                 next = current + (sep ? sep : (current.endsWith(" ") || text.startsWith(" ") ? "" : " ")) + text;
             } else {
-                // insert (por defecto): en cursor si enfocado; si no, al final
                 if (hasFocus) {
                     next = current.slice(0, selStart) + text + current.slice(selEnd);
                 } else {
@@ -134,7 +129,6 @@ export default function MessageComposer({
 
             onChange(next);
 
-            // Vuelve a enfocar y coloca el caret al final del bloque insertado
             requestAnimationFrame(() => {
                 if (!ref.current) return;
                 ref.current.focus();

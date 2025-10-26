@@ -93,18 +93,14 @@ export default function SystemMessage({ content, title, messageId, sessionId }: 
                 }
 
                 const resolver = (docId: number, secondId: number): RefResolveResult => {
-                    // Prioriza doc:chunk
                     const k1 = `${docId}:${secondId}`;
                     return byDocChunk.get(k1) || byDocHit.get(k1) || null;
                 };
 
                 if (!cancelled) {
                     setFinalMd((prev) => {
-                        // corrige refs por si el estado previo trae texto no arreglado
                         const fixed = fixMalformedRefsFenceAware(prev);
-                        // linkificar refs [doc:chunk] / [doc:hit]
                         const linked = linkifyRefsFenceAware(fixed, resolver);
-                        // inyectar bloque de fuentes
                         if (linked.includes(SOURCES_SLOT)) return linked.replace(SOURCES_SLOT, block);
                         return linked + (block ? `\n\n${block}` : "");
                     });
