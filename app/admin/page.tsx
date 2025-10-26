@@ -45,9 +45,19 @@ export default async function AdminPage() {
     return (
         <>
             <Topbar user={user} />
-            <main className="flex h-[calc(100svh-56px)] min-h-0 overflow-hidden">
-                <div className="flex-1 min-h-0 p-4">
-                    <WhitelistAdmin />
+            <main className="flex h-[calc(100svh-56px)] min-h-0 overflow-hidden bg-[var(--bg)]">
+                <div className="flex-1 min-h-0 p-4 md:p-6">
+                    <div className="h-full flex flex-col gap-4">
+                        <header className="animate-fadeIn">
+                            <h2 className="text-2xl md:text-2xl font-bold text-slate-800">
+                                Panel de Administración
+                            </h2>
+                            <p className="text-sm text-slate-600 mt-1">
+                                Gestiona la lista de usuarios autorizados del sistema
+                            </p>
+                        </header>
+                        <WhitelistAdmin />
+                    </div>
                 </div>
             </main>
         </>

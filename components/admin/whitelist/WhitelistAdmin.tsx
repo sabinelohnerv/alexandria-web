@@ -138,8 +138,19 @@ export default function WhitelistAdmin() {
     const rows = useMemo(() => st.data, [st.data]);
 
     return (
-        <section className="h-full min-h-0 flex flex-col gap-3">
-            <WhitelistToolbar st={st} setSt={setSt} onCreate={openCreate} />
+        <div className="flex-1 min-h-0 flex flex-col gap-4 animate-fadeIn">
+            <div className="relative">
+                <WhitelistToolbar st={st} setSt={setSt} onCreate={openCreate} />
+                {st.loading && (
+                    <div className="absolute top-2 right-2 flex items-center gap-2 text-xs text-slate-500 bg-white px-3 py-1.5 rounded-full border shadow-sm animate-fadeIn">
+                        <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Cargando...
+                    </div>
+                )}
+            </div>
 
             <DataView rows={rows} onEdit={openEdit} onToggle={toggleActive} loading={st.loading} />
 
@@ -151,6 +162,6 @@ export default function WhitelistAdmin() {
                 onClose={() => { setModalOpen(false); setEditing(null); }}
                 onSubmit={submitForm}
             />
-        </section>
+        </div>
     );
 }

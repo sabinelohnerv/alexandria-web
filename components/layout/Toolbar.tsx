@@ -66,12 +66,12 @@ type SearchProps = React.InputHTMLAttributes<HTMLInputElement> & {
 };
 Toolbar.Search = function Search({ className, shortcutHint = "⌘K", ...props }: SearchProps) {
     return (
-        <div className={clsx("relative", className)}>
+        <div className={clsx("relative rounded-md border focus-within:ring-2 focus-within:ring-[var(--brand)] focus-within:ring-offset-2 transition-all", className)}>
             {/* Icono lupa (izquierda) */}
             <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400"
+                className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400 pointer-events-none"
             >
                 <path
                     d="M15.5 14h-.79l-.28-.27a6 6 0 1 0-.71.71l.27.28v.79l4.25 4.25a1 1 0 0 0 1.41-1.41L15.5 14Zm-6 0a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"
@@ -83,8 +83,8 @@ Toolbar.Search = function Search({ className, shortcutHint = "⌘K", ...props }:
                 {...props}
                 type="search"
                 className={clsx(
-                    "w-full rounded-md border pl-8 pr-16 py-2 text-sm",
-                    "focus:outline-none focus:ring-2 focus:ring-[#023f66]"
+                    "w-full rounded-md pl-8 pr-16 py-2 text-sm bg-transparent",
+                    "focus:outline-none"
                 )}
             />
 
