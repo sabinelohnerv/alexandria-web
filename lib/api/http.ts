@@ -1,3 +1,5 @@
+import { BackendError, type BackendErrorResponse } from "./errors";
+
 const USE_PROXY = true;
 
 const API_BASE_PUBLIC =
@@ -49,8 +51,26 @@ export async function fetchJson<T>(
     });
 
     if (!res.ok) {
-        const msg = await res.text().catch(() => res.statusText);
-        throw new Error(`HTTP ${res.status}: ${msg}`);
+        // Intentar parsear el error estructurado del backend
+        try {
+            const errorData = await res.json() as BackendErrorResponse;
+            const detail = errorData.detail || res.statusText;
+            let code = errorData.code;
+            
+            // Detectar validaciones de contenido (no son errores técnicos)
+            if (!code && res.status === 400 && detail.includes("consultas jurídicas")) {
+                code = "content_validation";
+            }
+            
+            throw new BackendError(res.status, detail, code);
+        } catch (parseError) {
+            // Si no se puede parsear como JSON, usar el texto plano
+            if (parseError instanceof BackendError) {
+                throw parseError;
+            }
+            const msg = await res.text().catch(() => res.statusText);
+            throw new BackendError(res.status, msg);
+        }
     }
 
     const mode = init?.parseAs ?? "json";

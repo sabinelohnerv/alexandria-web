@@ -9,6 +9,30 @@ import MessageComposer from "@/components/chat/MessageComposer";
 import AssistantThinking from "@/components/chat/AssistantThinking";
 import Alert from "@/components/ui/Alert";
 import Image from "next/image";
+import { BackendError } from "@/lib/api/errors";
+
+function getErrorTitle(error: BackendError): string {
+    switch (error.code) {
+        case "database_error":
+            return "Error de Base de Datos";
+        case "connection_error":
+            return "Error de Conexión";
+        case "timeout_error":
+            return "Tiempo de Espera Agotado";
+        case "validation_error":
+            return "Error de Validación";
+        case "content_validation":
+            return "Aviso";
+        case "not_found":
+            return "No Encontrado";
+        case "unauthorized":
+            return "No Autorizado";
+        case "forbidden":
+            return "Acceso Denegado";
+        default:
+            return "Error al Enviar Mensaje";
+    }
+}
 
 export default function ChatWindow() {
     const { sessions, currentId, messagesBySession, selectSession, sendAsk, loadingSessions } = useSearchStore();
@@ -25,7 +49,8 @@ export default function ChatWindow() {
 
     const [text, setText] = useState("");
     const [sending, setSending] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<BackendError | null>(null);
+    const [lastQuery, setLastQuery] = useState<string>("");
 
     const viewRef = useRef<HTMLDivElement>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -57,15 +82,25 @@ export default function ChatWindow() {
         setText("");
         setSending(true);
         setError(null);
+        setLastQuery(content.trim());
         try {
             await sendAsk(currentId, content.trim());
         } catch (e: any) {
-            console.error(e);
-            setError(e?.message || "Hubo un error enviando la consulta. Por favor, intenta de nuevo.");
+            if (e instanceof BackendError) {
+                setError(e);
+            } else {
+                setError(new BackendError(500, e?.message || "Hubo un error enviando la consulta. Por favor, intenta de nuevo."));
+            }
         } finally {
             setSending(false);
         }
     }, [currentId, sendAsk]);
+
+    const handleRetry = useCallback(() => {
+        if (lastQuery) {
+            void doSend(lastQuery);
+        }
+    }, [lastQuery, doSend]);
 
     if (!session) {
         return (
@@ -105,7 +140,12 @@ export default function ChatWindow() {
             >
                 {error && (
                     <div className="mx-auto max-w-2xl animate-fadeIn">
-                        <Alert kind="error" title="Error al enviar mensaje" message={error} />
+                        <Alert 
+                            kind={error.getAlertKind()} 
+                            title={getErrorTitle(error)}
+                            message={error.getUserMessage()}
+                            onRetry={error.isRetryable() ? handleRetry : undefined}
+                        />
                     </div>
                 )}
 
