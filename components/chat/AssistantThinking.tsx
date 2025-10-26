@@ -21,7 +21,7 @@ export default function AssistantThinking() {
                     </div>
 
                     <div className="mt-3 text-xs text-slate-500 not-italic">
-                        Pensando…
+                        Recopilando información...
                     </div>
                 </div>
             </div>

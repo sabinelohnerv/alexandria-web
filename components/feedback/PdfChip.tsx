@@ -9,7 +9,6 @@ type PdfChipProps = {
     className?: string;
 };
 
-/** Ícono simple de documento/PDF */
 const PdfIcon = () => (
     <svg
         viewBox="0 0 24 24"
@@ -29,7 +28,6 @@ const PdfIcon = () => (
     </svg>
 );
 
-/** Chip/botón primario “Ver PDF” (menos redondeado, sin sombra) */
 export default function PdfChip({
     label = "Ver PDF",
     onClick,
