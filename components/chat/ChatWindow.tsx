@@ -6,6 +6,7 @@ import SystemMessage from "@/components/chat/SystemMessage";
 import UserMessage from "@/components/chat/UserMessage";
 import MessageComposer from "@/components/chat/MessageComposer";
 import AssistantThinking from "@/components/chat/AssistantThinking";
+import Image from "next/image";
 
 export default function ChatWindow() {
     const { sessions, currentId, messagesBySession, selectSession, sendAsk } = useSearchStore();
@@ -79,6 +80,14 @@ export default function ChatWindow() {
             >
                 {messages.length === 0 && !sending && (
                     <div className="mx-auto mt-10 max-w-xl rounded-2xl border bg-white p-6 text-center">
+                        <div className="flex justify-center mb-4">
+                            <div
+                                className="grid place-items-center rounded-full border size-16"
+                                style={{ borderColor: "var(--brand)" }}
+                            >
+                                <Image src="/brand/logo-mark.svg" alt="Alexandria" width={48} height={48} priority />
+                            </div>
+                        </div>
                         <h3 className="text-lg font-semibold">¡Bienvenido a Alexandria!</h3>
                         <p className="text-sm text-slate-600 mt-1">
                             Escribe tu primera consulta legal abajo.
