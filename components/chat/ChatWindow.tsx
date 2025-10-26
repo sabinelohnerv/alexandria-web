@@ -6,6 +6,7 @@ import SystemMessage from "@/components/chat/SystemMessage";
 import UserMessage from "@/components/chat/UserMessage";
 import MessageComposer from "@/components/chat/MessageComposer";
 import AssistantThinking from "@/components/chat/AssistantThinking";
+import Alert from "@/components/ui/Alert";
 import Image from "next/image";
 
 export default function ChatWindow() {
@@ -23,6 +24,7 @@ export default function ChatWindow() {
 
     const [text, setText] = useState("");
     const [sending, setSending] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const viewRef = useRef<HTMLDivElement>(null);
     const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -53,11 +55,12 @@ export default function ChatWindow() {
         if (!content.trim() || !currentId) return;
         setText("");
         setSending(true);
+        setError(null);
         try {
             await sendAsk(currentId, content.trim());
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Hubo un error enviando la consulta.");
+            setError(e?.message || "Hubo un error enviando la consulta. Por favor, intenta de nuevo.");
         } finally {
             setSending(false);
         }
@@ -99,7 +102,13 @@ export default function ChatWindow() {
                 ref={viewRef}
                 className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3 relative"
             >
-                {messages.length === 0 && !sending && (
+                {error && (
+                    <div className="mx-auto max-w-2xl animate-fadeIn">
+                        <Alert kind="error" title="Error al enviar mensaje" message={error} />
+                    </div>
+                )}
+
+                {messages.length === 0 && !sending && !error && (
                     <div className="mx-auto mt-10 max-w-xl rounded-2xl border bg-white p-6 text-center">
                         <div className="flex justify-center mb-4">
                             <div
