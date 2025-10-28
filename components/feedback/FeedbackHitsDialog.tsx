@@ -223,6 +223,7 @@ export default function FeedbackHitsDialog({ open, onClose, sessionId, messageId
                                         title={viewerHit?.document?.title || undefined}
                                         onClose={handleCloseViewer}
                                         className="shadow-sm"
+                                        snippet={viewerHit?.snippet || null}
                                         rightNav={{
                                             canPrev: !!activeHitId && hits.findIndex(h => h.id === activeHitId) > 0,
                                             canNext: !!activeHitId && hits.findIndex(h => h.id === activeHitId) < hits.length - 1,
