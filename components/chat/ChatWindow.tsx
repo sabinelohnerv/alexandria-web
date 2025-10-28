@@ -143,11 +143,11 @@ export default function ChatWindow() {
             {/* Mensajes */}
             <div
                 ref={viewRef}
-                className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3 relative"
+                className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 pb-8 space-y-3 relative"
             >
 
                 {messages.length === 0 && !sending && (
-                    <div className="mx-auto mt-10 max-w-xl rounded-2xl border bg-white p-6 text-center">
+                    <div className="mx-auto mt-10 max-w-xl rounded-2xl border bg-white p-8 text-center">
                         <div className="flex justify-center mb-4">
                             <div
                                 className="grid place-items-center rounded-full border size-16"
@@ -200,7 +200,7 @@ export default function ChatWindow() {
             </div>
 
             {/* Composer */}
-            <div className="border-t bg-white p-3">
+            <div className="border-t bg-white p-3 md:p-5">
                 <MessageComposer
                     value={text}
                     onChange={setText}

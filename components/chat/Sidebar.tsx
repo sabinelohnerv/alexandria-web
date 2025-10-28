@@ -206,7 +206,7 @@ function SidebarInner() {
             </nav>
 
             {/* Footer fijo */}
-            <footer className="bg-white px-3 py-2">
+            <footer className="bg-white px-3 py-2 pb-4">
 
                 {/* botón Guía de uso */}
                 <button
