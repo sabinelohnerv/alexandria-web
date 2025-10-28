@@ -7,9 +7,9 @@ import SystemMessage from "@/components/chat/SystemMessage";
 import UserMessage from "@/components/chat/UserMessage";
 import MessageComposer from "@/components/chat/MessageComposer";
 import AssistantThinking from "@/components/chat/AssistantThinking";
-import Alert from "@/components/ui/Alert";
 import Image from "next/image";
 import { BackendError } from "@/lib/api/errors";
+import { useToast } from "@/components/ui/toast/ToastProvider";
 
 function getErrorTitle(error: BackendError): string {
     switch (error.code) {
@@ -36,6 +36,7 @@ function getErrorTitle(error: BackendError): string {
 
 export default function ChatWindow() {
     const { sessions, currentId, messagesBySession, selectSession, sendAsk, loadingSessions } = useSearchStore();
+    const toast = useToast();
 
     const session = useMemo(
         () => sessions.find((s) => s.id === currentId) || null,
@@ -49,7 +50,6 @@ export default function ChatWindow() {
 
     const [text, setText] = useState("");
     const [sending, setSending] = useState(false);
-    const [error, setError] = useState<BackendError | null>(null);
     const [lastQuery, setLastQuery] = useState<string>("");
 
     const viewRef = useRef<HTMLDivElement>(null);
@@ -81,20 +81,27 @@ export default function ChatWindow() {
         if (!content.trim() || !currentId) return;
         setText("");
         setSending(true);
-        setError(null);
         setLastQuery(content.trim());
         try {
             await sendAsk(currentId, content.trim());
         } catch (e: any) {
             if (e instanceof BackendError) {
-                setError(e);
+                // Determinar el tipo de toast según el error
+                const kind = e.getAlertKind() === "error" ? "error" : "info";
+                const title = getErrorTitle(e);
+                const message = e.getUserMessage();
+                
+                toast.show({ kind, title, message, duration: 5000 });
             } else {
-                setError(new BackendError(500, e?.message || "Hubo un error enviando la consulta. Por favor, intenta de nuevo."));
+                toast.error(
+                    e?.message || "Hubo un error enviando la consulta. Por favor, intenta de nuevo.",
+                    "Error al Enviar Mensaje"
+                );
             }
         } finally {
             setSending(false);
         }
-    }, [currentId, sendAsk]);
+    }, [currentId, sendAsk, toast]);
 
     const handleRetry = useCallback(() => {
         if (lastQuery) {
@@ -138,18 +145,8 @@ export default function ChatWindow() {
                 ref={viewRef}
                 className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-3 relative"
             >
-                {error && (
-                    <div className="mx-auto max-w-2xl animate-fadeIn">
-                        <Alert 
-                            kind={error.getAlertKind()} 
-                            title={getErrorTitle(error)}
-                            message={error.getUserMessage()}
-                            onRetry={error.isRetryable() ? handleRetry : undefined}
-                        />
-                    </div>
-                )}
 
-                {messages.length === 0 && !sending && !error && (
+                {messages.length === 0 && !sending && (
                     <div className="mx-auto mt-10 max-w-xl rounded-2xl border bg-white p-6 text-center">
                         <div className="flex justify-center mb-4">
                             <div
