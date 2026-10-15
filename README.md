@@ -99,6 +99,34 @@ The backend handles:
 
 This separation keeps the frontend focused on user interaction, presentation, and client-side application behavior.
 
+
+## Screenshots
+
+### AI-Powered Legal Research
+
+Alexandria provides a conversational interface for researching Bolivian legislation and case law using natural-language queries.
+
+Powered by a Retrieval-Augmented Generation (RAG) pipeline, the system combines hybrid search, semantic retrieval, and re-ranking to generate contextually relevant responses supported by legal citations.
+
+<p align="center">
+  <img src="screenshots/consultas-alexandria.png"
+       alt="Alexandria AI-powered legal research interface"
+       width="850">
+</p>
+
+### Legal Source Verification & Document Viewer
+
+Alexandria enables users to verify AI-generated responses by accessing the original legal documents cited in each answer.
+
+The integrated PDF viewer allows users to navigate between sources, inspect court rulings, and provide relevance feedback without leaving the research interface.
+
+<p align="center">
+  <img src="screenshots/documentos-alexandria-2.png"
+       alt="Alexandria legal source verification and PDF viewer"
+       width="850">
+</p>
+
+
 ## Testing
 
 Frontend unit tests cover application utilities, HTTP client behavior, URL handling, state management, and authentication.
